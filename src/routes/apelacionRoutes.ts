@@ -1,0 +1,9 @@
+import { Router } from 'express';
+import { ApelacionController } from '../controllers/ApelacionController';
+
+const router = Router();
+
+router.get('/capturar-apelacion', ApelacionController.getFormData);
+router.get('/buscar-apelacion', ApelacionController.getByFolio);
+
+export default router;
