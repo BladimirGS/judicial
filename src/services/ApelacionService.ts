@@ -8,63 +8,68 @@ import CatLocalidad from '../models/CatLocalidad';
 import CatEtnia from '../models/CatEtnia';
 import Apelacion from '../models/Apelacion';
 
-// Importamos los DTOs y el Mapper
-import { ApelacionFormDTO } from '../dtos/ApelacionForm.dto';
-import { ApelacionDetailDTO } from '../dtos/ApelacionDetail.dto';
-import { ApelacionMapper } from '../mappers/ApelacionMapper';
-
 export class ApelacionService {
-    
-    // Obtiene todos los catálogos necesarios para el formulario de captura.
-    static async getCaptureFormData(): Promise<ApelacionFormDTO> {
-        // Definimos los atributos que queremos traer de cada tabla de catálogo
+
+    static async getFormData() {
+
         const queryOptions = { 
-            attributes: ['id', 'descripcion', 'Activo'] // Ajusta 'Activo' según tu modelo
+            attributes: ['id', 'descripcion', 'activo']
         };
 
-        const [
-            materias, 
-            apelaciones, 
-            tiposApelaciones, 
-            tiposEscritos, 
-            juzgados, 
-            municipios, 
-            localidades, 
-            etnias
-        ] = await Promise.all([
-            CatMateria.findAll(queryOptions),
-            CatApelacion.findAll(queryOptions),
-            TipoApelacion.findAll(queryOptions),
-            TipoEscrito.findAll(queryOptions),
-            CatJuzgados.findAll(queryOptions),
-            CatMunicipio.findAll(queryOptions),
-            CatLocalidad.findAll(queryOptions),
-            CatEtnia.findAll(queryOptions),
-        ]);
-
-        // Usamos el Mapper para limpiar los datos
-        return {
-            materias: ApelacionMapper.toCatalogDTO(materias),
-            apelaciones: ApelacionMapper.toCatalogDTO(apelaciones),
-            tiposApelaciones: ApelacionMapper.toCatalogDTO(tiposApelaciones),
-            tiposEscritos: ApelacionMapper.toCatalogDTO(tiposEscritos),
-            juzgados: ApelacionMapper.toCatalogDTO(juzgados),
-            municipios: ApelacionMapper.toCatalogDTO(municipios),
-            localidades: ApelacionMapper.toCatalogDTO(localidades),
-            etnias: ApelacionMapper.toCatalogDTO(etnias)
+        const catalogs: Record<string, any> = {
+            materias: CatMateria,
+            apelaciones: CatApelacion,
+            tiposApelaciones: TipoApelacion,
+            tiposEscritos: TipoEscrito,
+            juzgados: CatJuzgados,
+            municipios: CatMunicipio,
+            localidades: CatLocalidad,
+            etnias: CatEtnia
         };
+
+        const results = await Promise.all(
+            Object.values(catalogs).map(model => model.findAll(queryOptions))
+        );
+
+        return Object.keys(catalogs).reduce((acc, key, index) => {
+            acc[key] = results[index].map((item: any) => ({
+                id: item.id,
+                descripcion: item.descripcion,
+                activo: item.activo
+            }));
+            return acc;
+        }, {} as Record<string, any>);
     }
 
-    // Busca una apelación por su ID y retorna sus detalles con nombres de catálogos.
+    static async getByFolio(folio: string) {
 
-    static async getByFolio(folio: string): Promise<ApelacionDetailDTO | null> {
         const apelacion = await Apelacion.findOne({
-            where: { folioOficialia: folio }, // Buscamos por el campo de la BD
-            include: { all: true } 
+            where: { folioOficialia: folio },
+            include: { all: true }
         });
 
         if (!apelacion) return null;
 
-        return ApelacionMapper.toDetailDTO(apelacion);
+        return {
+            id: apelacion.id,
+            folioOficialia: apelacion.folioOficialia,
+            folioApelacion: apelacion.folioApelacion,
+            expedienteCausa: apelacion.expedienteCausa,
+            fojas: apelacion.fojas,
+            esReposicion: apelacion.esReposicion,
+            fechaAuto: apelacion.fechaAuto,
+            observaciones: apelacion.observaciones,
+            asunto: apelacion.asunto,
+            lugarHechos: apelacion.lugarHechos,
+
+            // Relaciones 
+            materia: apelacion.materia?.descripcion ?? 'N/A',
+            etnia: apelacion.etnia?.descripcion ?? 'N/A',
+            tipoApelacion: apelacion.tipoApelacion?.descripcion ?? 'N/A',
+            tipoEscrito: apelacion.tipoEscrito?.descripcion ?? 'N/A',
+            juzgadoOrigen: apelacion.catJuzgado?.descripcion ?? 'N/A',
+            municipio: apelacion.municipio?.descripcion ?? 'N/A',
+            localidad: apelacion.localidad?.descripcion ?? 'N/A'
+        };
     }
 }
