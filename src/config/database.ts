@@ -13,7 +13,7 @@ export const sequelize = new Sequelize({
   password: process.env.DB_PASSWORD,
   database: process.env.DB_NAME,
   logging: false, 
-  models: [path.join(__dirname, '../models/**/*.ts')], 
+  models: [path.join(__dirname, '../models/**/*.{js,ts}')],
   define: {
     timestamps: false, 
   },
