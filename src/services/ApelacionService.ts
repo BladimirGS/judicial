@@ -72,4 +72,10 @@ export class ApelacionService {
             localidad: apelacion.localidad?.descripcion ?? 'N/A'
         };
     }
+
+    static async create(data: any) {
+        const nuevaApelacion = await Apelacion.create(data);
+        
+        return nuevaApelacion;
+    }
 }

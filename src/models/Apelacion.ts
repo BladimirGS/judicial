@@ -1,6 +1,6 @@
 import { AutoIncrement, BelongsTo, Column, DataType, ForeignKey, Model, PrimaryKey, Table } from "sequelize-typescript"
 import CatMateria from "./CatMateria"
-import CatNomenclatura from "./CatNomenclaturas"
+import CatNomenclatura from "./CatNomenclatura"
 import CatApelacion from "./CatApelacion"
 import TipoApelacion from "./TipoApelacion"
 import TipoEscrito from "./TipoEscrito"

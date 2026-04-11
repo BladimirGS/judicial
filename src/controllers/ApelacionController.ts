@@ -32,5 +32,29 @@ export const ApelacionController = {
             console.error(error);
             res.status(500).json({ msg: 'Error interno' });
         }
+    },
+
+    create: async (req: Request, res: Response) => {
+        try {
+            // En un proyecto pequeño, pasamos el req.body directo al servicio
+            const nuevaApelacion = await ApelacionService.create(req.body);
+
+            res.status(201).json({
+                msg: 'Apelación registrada correctamente',
+                data: nuevaApelacion
+            });
+        } catch (error: any) {
+            console.error('Error en create:', error);
+            
+            // Manejo de errores de validación de Sequelize (ej. campos obligatorios faltantes)
+            if (error.name === 'SequelizeValidationError') {
+                return res.status(400).json({ 
+                    msg: 'Datos incompletos o incorrectos', 
+                    errors: error.errors.map((e: any) => e.message) 
+                });
+            }
+
+            res.status(500).json({ msg: 'Error al registrar la apelación' });
+        }
     }
 };
