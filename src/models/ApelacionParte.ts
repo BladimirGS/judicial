@@ -64,8 +64,8 @@ class ApelacionParte extends Model {
 
     // Relaciones
 
-    @BelongsTo(() => Apelacion)
-    declare apelacion: Apelacion;
+    // @BelongsTo(() => Apelacion)
+    // declare apelacion: Apelacion;
 
     @BelongsTo(() => TipoParte)
     declare tipoParte: TipoParte;

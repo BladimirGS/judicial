@@ -50,31 +50,26 @@ export class ApelacionService {
     static async getByFolio(folio: string) {
         const apelacion = await Apelacion.findOne({
             where: { folioOficialia: folio },
+            attributes: [
+                'id', 'folioOficialia', 'folioApelacion', 'expedienteCausa', 
+                'fojas', 'esReposicion', 'fechaAuto', 'observaciones', 'asunto', 'lugarHechos'
+            ],
             include: [
                 { all: true }, // Catálogos básicos
-                // {
-                //     model: ApelacionParte,
-                //     include: [{ model: TipoParte }, { model: Sexo }]
-                // },
                 {
                     model: Relacion,
                     include: [
-                        { all: true },
-                        // { 
-                        //     model: ApelacionParte, 
-                        //     as: 'apelacionParteOfendido', // Asegúrate de que este alias exista en el BelongsTo de Relacion
-                        //     include: [TipoParte] 
-                        // },
-                        // { 
-                        //     model: ApelacionParte, 
-                        //     as: 'apelacionParteProcesado', // Lo mismo aquí
-                        //     include: [TipoParte] 
-                        // },
-                        // {
-                        //     model: DelitoRelacion,
-                        //     include: [Delito]
-                        // }
-                    ]
+                        {
+                            model: DelitoRelacion,
+                            attributes: ['id', 'activo'], 
+                            include: [
+                                { 
+                                    model: Delito, 
+                                    attributes: ['id', 'delito'] 
+                                } 
+                            ]
+                        }
+                    ],
                 }
             ],
             // IMPORTANTE: Esto evita que Sequelize use subconsultas complejas 
@@ -83,30 +78,6 @@ export class ApelacionService {
         });
 
         if (!apelacion) return null;
-
-        // Mapeo del objeto de respuesta
-        // return {
-        //     ...apelacion.get({ plain: true }), // Obtenemos los datos base
-        //     // Formateamos las partes
-        //     partes: apelacion.partes?.map(p => ({
-        //         id: p.id,
-        //         nombre: p.nombre, // asumiendo que tiene nombre
-        //         tipo: p.tipoParte?.descripcion ?? 'N/A',
-        //         sexo: p.sexo?.descripcion ?? 'N/A'
-        //     })),
-        //     // Formateamos las relaciones y sus delitos
-        //     relaciones: apelacion.relaciones?.map(r => ({
-        //         id: r.id,
-        //         ofendido: r.apelacionParteOfendido?.nombre ?? 'N/A',
-        //         procesado: r.apelacionParteProcesado?.nombre ?? 'N/A',
-        //         delitos: r.delitoRelaciones?.map(dr => dr.delito?.delito) ?? []
-        //     })),
-        //     // Mantienes tus mapeos anteriores de catálogos
-        //     materia: apelacion.materia?.descripcion ?? 'N/A',
-        //     etnia: apelacion.etnia?.descripcion ?? 'N/A',
-        //     // ... resto de tus mapeos
-        // };
-
         
         return {
             id: apelacion.id,
@@ -127,7 +98,17 @@ export class ApelacionService {
             tipoEscrito: apelacion.tipoEscrito?.descripcion ?? 'N/A',
             juzgadoOrigen: apelacion.catJuzgado?.descripcion ?? 'N/A',
             municipio: apelacion.municipio?.descripcion ?? 'N/A',
-            localidad: apelacion.localidad?.descripcion ?? 'N/A'
+            localidad: apelacion.localidad?.descripcion ?? 'N/A',
+
+            relaciones: apelacion.relaciones?.map(r => ({
+            id: r.id,
+            activo: r.activo,
+            delitosRelacion: r.delitoRelaciones?.map(dr => ({
+                id: dr.id,
+                activo: dr.activo,
+                nombreDelito: dr.delito?.delito ?? 'N/A' 
+            })) ?? [],
+        })) ?? []
         };
     }
 

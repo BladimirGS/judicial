@@ -23,19 +23,19 @@ class Relacion extends Model {
 
     // Foreign keys
 
-    // @ForeignKey(()=> ApelacionParte)
-    // @Column({
-    //     type: DataType.INTEGER,
-    //     field: 'IdApelacionParteOfendido'
-    // })
-    // declare idApelacionParteOfendido: number;
+    @ForeignKey(()=> ApelacionParte)
+    @Column({
+        type: DataType.INTEGER,
+        field: 'IdApelacionParteOfendido'
+    })
+    declare idApelacionParteOfendido: number;
 
-    // @ForeignKey(()=> ApelacionParte)
-    // @Column({
-    //     type: DataType.INTEGER,
-    //     field: 'IdApelacionParteProcesado'
-    // })
-    // declare idApelacionParteProcesado: number;
+    @ForeignKey(()=> ApelacionParte)
+    @Column({
+        type: DataType.INTEGER,
+        field: 'IdApelacionParteProcesado'
+    })
+    declare idApelacionParteProcesado: number;
 
     @ForeignKey(()=> Apelacion)
     @Column({
@@ -46,17 +46,17 @@ class Relacion extends Model {
 
     // Relaciones
 
-    // @BelongsTo(() => ApelacionParte)
-    // declare apelacionParteOfendido: ApelacionParte;
+    @BelongsTo(() => ApelacionParte)
+    declare apelacionParteOfendido: ApelacionParte[];
 
-    // @BelongsTo(() => ApelacionParte)
-    // declare apelacionParteProcesado: ApelacionParte;
+    @BelongsTo(() => ApelacionParte)
+    declare apelacionParteProcesado: ApelacionParte[];
 
     @BelongsTo(() => Apelacion)
     declare apelacion: Apelacion;
 
-    // @HasMany(() => DelitoRelacion)
-    // declare delitoRelaciones: DelitoRelacion[];
+    @HasMany(() => DelitoRelacion)
+    declare delitoRelaciones: DelitoRelacion[];
 }
 
 export default Relacion

@@ -32,7 +32,7 @@ class DelitoRelacion extends Model {
     @ForeignKey(()=> Delito)
     @Column({
         type: DataType.INTEGER,
-        field: 'IdDelito'
+        field: 'IdCatDelito'
     })
     declare idDelito: number;
 
