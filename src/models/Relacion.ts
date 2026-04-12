@@ -45,17 +45,17 @@ class Relacion extends Model {
     declare idApelacion: number;
 
     // Relaciones
-
-    @BelongsTo(() => ApelacionParte)
-    declare apelacionParteOfendido: ApelacionParte[];
-
-    @BelongsTo(() => ApelacionParte)
-    declare apelacionParteProcesado: ApelacionParte[];
-
+    
     @BelongsTo(() => Apelacion)
     declare apelacion: Apelacion;
 
-    @HasMany(() => DelitoRelacion)
+    @BelongsTo(() => ApelacionParte, { foreignKey: 'idApelacionParteOfendido', as: 'ofendido' })
+    declare ofendido: ApelacionParte;
+
+    @BelongsTo(() => ApelacionParte, { foreignKey: 'idApelacionParteProcesado', as: 'procesado' })
+    declare procesado: ApelacionParte;
+
+    @HasMany(() => DelitoRelacion, 'idRelacion')
     declare delitoRelaciones: DelitoRelacion[];
 }
 

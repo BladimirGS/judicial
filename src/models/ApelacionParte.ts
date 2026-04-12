@@ -58,7 +58,7 @@ class ApelacionParte extends Model {
     @ForeignKey(()=> Sexo)
     @Column({
         type: DataType.INTEGER,
-        field: 'IdSexo'
+        field: 'IdCatSexo'
     })
     declare idSexo: number;
 

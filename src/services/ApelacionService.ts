@@ -47,70 +47,68 @@ export class ApelacionService {
         }, {} as Record<string, any>);
     }
 
-    static async getByFolio(folio: string) {
-        const apelacion = await Apelacion.findOne({
-            where: { folioOficialia: folio },
-            attributes: [
-                'id', 'folioOficialia', 'folioApelacion', 'expedienteCausa', 
-                'fojas', 'esReposicion', 'fechaAuto', 'observaciones', 'asunto', 'lugarHechos'
-            ],
+static async getByFolio(folio: string) {
+const apelacion = await Apelacion.findOne({
+    where: { folioOficialia: folio },
+    attributes: ['id', 'folioOficialia', 'folioApelacion'],
+    include: [
+        { model: CatMateria, attributes: ['descripcion'] },
+        {
+            model: Relacion,
+            attributes: ['id', 'activo'],
             include: [
-                { all: true }, // Catálogos básicos
                 {
-                    model: Relacion,
-                    include: [
-                        {
-                            model: DelitoRelacion,
-                            attributes: ['id', 'activo'], 
-                            include: [
-                                { 
-                                    model: Delito, 
-                                    attributes: ['id', 'delito'] 
-                                } 
-                            ]
-                        }
-                    ],
+                    model: ApelacionParte,
+                    as: 'ofendido',
+                    attributes: ['id', 'nombre'],
+                    include: [{ model: Sexo, attributes: ['descripcion'] }]
+                },
+                {
+                    model: ApelacionParte,
+                    as: 'procesado',
+                    attributes: ['id', 'nombre'],
+                    include: [{ model: Sexo, attributes: ['descripcion'] }]
+                },
+                {
+                    model: DelitoRelacion,
+                    attributes: ['id'],
+                    include: [{ model: Delito, attributes: ['delito'] }]
                 }
-            ],
-            // IMPORTANTE: Esto evita que Sequelize use subconsultas complejas 
-            // que suelen romper SQL Server con muchos Joins
-            subQuery: false 
-        });
+            ]
+        }
+    ],
+    subQuery: false,
+});
 
-        if (!apelacion) return null;
-        
-        return {
-            id: apelacion.id,
-            folioOficialia: apelacion.folioOficialia,
-            folioApelacion: apelacion.folioApelacion,
-            expedienteCausa: apelacion.expedienteCausa,
-            fojas: apelacion.fojas,
-            esReposicion: apelacion.esReposicion,
-            fechaAuto: apelacion.fechaAuto,
-            observaciones: apelacion.observaciones,
-            asunto: apelacion.asunto,
-            lugarHechos: apelacion.lugarHechos,
+    if (!apelacion) return null;
 
-            // Relaciones 
-            materia: apelacion.materia?.descripcion ?? 'N/A',
-            etnia: apelacion.etnia?.descripcion ?? 'N/A',
-            tipoApelacion: apelacion.tipoApelacion?.descripcion ?? 'N/A',
-            tipoEscrito: apelacion.tipoEscrito?.descripcion ?? 'N/A',
-            juzgadoOrigen: apelacion.catJuzgado?.descripcion ?? 'N/A',
-            municipio: apelacion.municipio?.descripcion ?? 'N/A',
-            localidad: apelacion.localidad?.descripcion ?? 'N/A',
-
-            relaciones: apelacion.relaciones?.map(r => ({
-            id: r.id,
-            activo: r.activo,
-            delitosRelacion: r.delitoRelaciones?.map(dr => ({
-                id: dr.id,
-                activo: dr.activo,
-                nombreDelito: dr.delito?.delito ?? 'N/A' 
-            })) ?? [],
+return {
+    id: apelacion.id,
+    folioOficialia: apelacion.folioOficialia,
+    materia: apelacion.materia?.descripcion ?? 'N/A',
+    relaciones: apelacion.relaciones?.map(r => ({
+        id: r.id,
+        activo: r.activo,
+        // OFENDIDO (Es un objeto, no un array)
+        ofendido: {
+            id: r.ofendido?.id,
+            nombre: r.ofendido?.nombre ?? 'N/A',
+            sexo: r.ofendido?.sexo?.descripcion ?? 'N/A'
+        },
+        // PROCESADO (Es un objeto, no un array)
+        procesado: {
+            id: r.procesado?.id,
+            nombre: r.procesado?.nombre ?? 'N/A',
+            sexo: r.procesado?.sexo?.descripcion ?? 'N/A'
+        },
+        // DELITOS (Este sí es un array)
+        delitosRelacion: r.delitoRelaciones?.map(dr => ({
+            id: dr.id,
+            nombreDelito: dr.delito?.delito ?? 'N/A' 
         })) ?? []
-        };
-    }
+    })) ?? []
+};
+}
 
     static async create(data: any) {
         const nuevaApelacion = await Apelacion.create(data);
