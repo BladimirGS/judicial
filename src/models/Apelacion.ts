@@ -1,4 +1,4 @@
-import { AutoIncrement, BelongsTo, Column, DataType, ForeignKey, Model, PrimaryKey, Table } from "sequelize-typescript"
+import { AutoIncrement, BelongsTo, Column, DataType, ForeignKey, HasMany, Model, PrimaryKey, Table } from "sequelize-typescript"
 import CatMateria from "./CatMateria"
 import CatNomenclatura from "./CatNomenclatura"
 import CatApelacion from "./CatApelacion"
@@ -8,6 +8,8 @@ import CatMunicipio from "./CatMunicipio"
 import CatLocalidad from "./CatLocalidad"
 import CatEtnia from "./CatEtnia"
 import CatJuzgado from "./CatJuzgado"
+import ApelacionParte from "./ApelacionParte"
+import Relacion from "./Relacion"
 
 @Table({
     tableName: 'OFA_Apelaciones'
@@ -41,9 +43,6 @@ class Apelacion extends Model{
     })
     declare idCatMateria: number
 
-    @BelongsTo(() => CatMateria) 
-    declare materia: CatMateria;
-
     @Column({
         type: DataType.STRING(9),
         field: 'FolioOficialia'
@@ -56,9 +55,6 @@ class Apelacion extends Model{
         field: 'IdCatNomenclatura'
     })
     declare idCatNomenclatura: number
-
-    @BelongsTo(() => CatNomenclatura) 
-    declare nomenclatura: CatNomenclatura;
 
     @Column({
         type: DataType.STRING(25),
@@ -79,18 +75,12 @@ class Apelacion extends Model{
     })
     declare idCAtApelacion: number
 
-    @BelongsTo(() => CatApelacion) 
-    declare catApelacion: CatApelacion;
-
     @ForeignKey(() => TipoApelacion)
     @Column({
         type: DataType.INTEGER,
         field: 'IdCatTipoApelacion'
     })
     declare idCatTipoApelacion: number
-
-    @BelongsTo(() => TipoApelacion) 
-    declare tipoApelacion: TipoApelacion;
 
     @Column({
         type: DataType.DATE,
@@ -110,9 +100,6 @@ class Apelacion extends Model{
         field: 'IdCatTipoEscrito'
     })
     declare idCatTipoEscrito: number
-
-    @BelongsTo(() => TipoEscrito) 
-    declare tipoEscrito: TipoEscrito;
 
     @Column({
         type: DataType.STRING(35),
@@ -138,9 +125,6 @@ class Apelacion extends Model{
         field: 'IdCatJuzgadoOrigen'
     })
     declare idCatJuzgadoOrigen: number
-
-    @BelongsTo(() => CatJuzgado) 
-    declare catJuzgado: CatJuzgado;
 
     @Column({
         type: DataType.STRING(2500),
@@ -191,18 +175,12 @@ class Apelacion extends Model{
     })
     declare idCatMunicipio: number
 
-    @BelongsTo(() => CatMunicipio) 
-    declare municipio: CatMunicipio;
-
     @ForeignKey(() => CatLocalidad)
     @Column({
         type: DataType.INTEGER,
         field: 'IdCAtLocalidad'
     })
     declare idCatLocalidad: number
-
-    @BelongsTo(() => CatLocalidad) 
-    declare localidad: CatLocalidad;
 
     @Column({
         type: DataType.STRING(200),
@@ -223,14 +201,45 @@ class Apelacion extends Model{
     })
     declare idEtnia: number
 
-    @BelongsTo(() => CatEtnia) 
-    declare etnia: CatEtnia;
-
     @Column({
         type: DataType.INTEGER,
         field: 'IdMagistradoAsignado'
     })
     declare idMagistradoAsignado: number
+
+
+    @BelongsTo(() => CatMateria)
+    declare materia: CatMateria;
+
+    @BelongsTo(() => CatNomenclatura) 
+    declare nomenclatura: CatNomenclatura;
+
+    @BelongsTo(() => CatApelacion) 
+    declare catApelacion: CatApelacion;
+
+    @BelongsTo(() => TipoApelacion)
+    declare tipoApelacion: TipoApelacion;
+
+    @BelongsTo(() => TipoEscrito)
+    declare tipoEscrito: TipoEscrito;
+
+    @BelongsTo(() => CatJuzgado)
+    declare catJuzgado: CatJuzgado;
+
+    @BelongsTo(() => CatMunicipio)
+    declare municipio: CatMunicipio;
+
+    @BelongsTo(() => CatLocalidad)
+    declare localidad: CatLocalidad;
+
+    @BelongsTo(() => CatEtnia)
+    declare etnia: CatEtnia;
+
+    // @HasMany(() => ApelacionParte)
+    // declare apelacionPartes: ApelacionParte[];
+
+    @HasMany(() => Relacion)
+    declare relaciones: Relacion[];
 }
 
 export default Apelacion

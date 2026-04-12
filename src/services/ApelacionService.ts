@@ -7,6 +7,12 @@ import CatMunicipio from '../models/CatMunicipio';
 import CatLocalidad from '../models/CatLocalidad';
 import CatEtnia from '../models/CatEtnia';
 import Apelacion from '../models/Apelacion';
+import ApelacionParte from '../models/ApelacionParte';
+import TipoParte from '../models/TipoParte';
+import Sexo from '../models/Sexo';
+import Relacion from '../models/Relacion';
+import DelitoRelacion from '../models/DelitoRelacion';
+import Delito from '../models/Delito';
 
 export class ApelacionService {
 
@@ -42,14 +48,66 @@ export class ApelacionService {
     }
 
     static async getByFolio(folio: string) {
-
         const apelacion = await Apelacion.findOne({
             where: { folioOficialia: folio },
-            include: { all: true }
+            include: [
+                { all: true }, // Catálogos básicos
+                // {
+                //     model: ApelacionParte,
+                //     include: [{ model: TipoParte }, { model: Sexo }]
+                // },
+                {
+                    model: Relacion,
+                    include: [
+                        { all: true },
+                        // { 
+                        //     model: ApelacionParte, 
+                        //     as: 'apelacionParteOfendido', // Asegúrate de que este alias exista en el BelongsTo de Relacion
+                        //     include: [TipoParte] 
+                        // },
+                        // { 
+                        //     model: ApelacionParte, 
+                        //     as: 'apelacionParteProcesado', // Lo mismo aquí
+                        //     include: [TipoParte] 
+                        // },
+                        // {
+                        //     model: DelitoRelacion,
+                        //     include: [Delito]
+                        // }
+                    ]
+                }
+            ],
+            // IMPORTANTE: Esto evita que Sequelize use subconsultas complejas 
+            // que suelen romper SQL Server con muchos Joins
+            subQuery: false 
         });
 
         if (!apelacion) return null;
 
+        // Mapeo del objeto de respuesta
+        // return {
+        //     ...apelacion.get({ plain: true }), // Obtenemos los datos base
+        //     // Formateamos las partes
+        //     partes: apelacion.partes?.map(p => ({
+        //         id: p.id,
+        //         nombre: p.nombre, // asumiendo que tiene nombre
+        //         tipo: p.tipoParte?.descripcion ?? 'N/A',
+        //         sexo: p.sexo?.descripcion ?? 'N/A'
+        //     })),
+        //     // Formateamos las relaciones y sus delitos
+        //     relaciones: apelacion.relaciones?.map(r => ({
+        //         id: r.id,
+        //         ofendido: r.apelacionParteOfendido?.nombre ?? 'N/A',
+        //         procesado: r.apelacionParteProcesado?.nombre ?? 'N/A',
+        //         delitos: r.delitoRelaciones?.map(dr => dr.delito?.delito) ?? []
+        //     })),
+        //     // Mantienes tus mapeos anteriores de catálogos
+        //     materia: apelacion.materia?.descripcion ?? 'N/A',
+        //     etnia: apelacion.etnia?.descripcion ?? 'N/A',
+        //     // ... resto de tus mapeos
+        // };
+
+        
         return {
             id: apelacion.id,
             folioOficialia: apelacion.folioOficialia,
