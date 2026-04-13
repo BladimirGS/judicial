@@ -14,6 +14,7 @@ import Relacion from '../models/Relacion';
 import DelitoRelacion from '../models/DelitoRelacion';
 import CatDelito from '../models/CatDelito';
 import { sequelize } from '../config/database';
+import CatAnexo from '../models/CatAnexo';
 
 export class ApelacionService {
 
@@ -214,4 +215,29 @@ static async create(data: any) {
         throw error;
     }
 }
+
+    static async listAnexos() {
+        const catalogs: Record<string, any> = {
+            anexo: CatAnexo,
+        };
+
+        const results = await Promise.all(
+            Object.entries(catalogs).map(async ([key, model]) => {
+                const attributes = ['id', 'activo', 'descripcion'];
+                
+                const data = await model.findAll({ attributes });
+                
+                return data.map((item: any) => ({
+                    id: item.id,
+                    activo: item.activo,
+                    descripcion: item.descripcion
+                }));
+            })
+        );
+
+        return Object.keys(catalogs).reduce((acc, key, index) => {
+            acc[key] = results[index];
+            return acc;
+        }, {} as Record<string, any>);
+    }
 }

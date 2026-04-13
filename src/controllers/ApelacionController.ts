@@ -60,5 +60,16 @@ export const ApelacionController = {
 
             res.status(500).json({ msg: 'Error al registrar la apelación en el servidor' });
         }
-    }
+    },
+
+    listAnexos: async (_req: Request, res: Response) => {
+        try {
+            const data = await ApelacionService.listAnexos();
+            res.json(data);
+        } catch (error) {
+            console.error(error);
+            res.status(500).json({ msg: 'Error interno' });
+        }
+    },
+
 };
