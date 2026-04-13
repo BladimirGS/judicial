@@ -36,7 +36,7 @@ export const ApelacionController = {
 
     create: async (req: Request, res: Response) => {
         try {
-            // En un proyecto pequeño, pasamos el req.body directo al servicio
+            // El req.body debe contener el objeto anidado
             const nuevaApelacion = await ApelacionService.create(req.body);
 
             res.status(201).json({
@@ -46,7 +46,6 @@ export const ApelacionController = {
         } catch (error: any) {
             console.error('Error en create:', error);
             
-            // Manejo de errores de validación de Sequelize (ej. campos obligatorios faltantes)
             if (error.name === 'SequelizeValidationError') {
                 return res.status(400).json({ 
                     msg: 'Datos incompletos o incorrectos', 
@@ -54,7 +53,12 @@ export const ApelacionController = {
                 });
             }
 
-            res.status(500).json({ msg: 'Error al registrar la apelación' });
+            // Error específico de SQL Server (ej. llaves foráneas inexistentes)
+            if (error.name === 'SequelizeForeignKeyConstraintError') {
+                return res.status(400).json({ msg: 'Error de relación: Uno de los IDs de catálogo no existe' });
+            }
+
+            res.status(500).json({ msg: 'Error al registrar la apelación en el servidor' });
         }
     }
 };

@@ -1,6 +1,6 @@
 import { AutoIncrement, BelongsTo, Column, DataType, ForeignKey, Model, PrimaryKey, Table } from "sequelize-typescript";
 import Relacion from "./Relacion";
-import Delito from "./Delito";
+import Delito from "./CatDelito";
 
 @Table({
     tableName: 'OFA_DelitosRelaciones'

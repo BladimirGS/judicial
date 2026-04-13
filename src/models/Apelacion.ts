@@ -41,7 +41,7 @@ class Apelacion extends Model{
         type: DataType.INTEGER,
         field: 'IdCatMateria'
     })
-    declare idCatMateria: number
+    declare idMateria: number
 
     @Column({
         type: DataType.STRING(9),
@@ -54,7 +54,7 @@ class Apelacion extends Model{
         type: DataType.INTEGER,
         field: 'IdCatNomenclatura'
     })
-    declare idCatNomenclatura: number
+    declare idNomenclatura: number
 
     @Column({
         type: DataType.STRING(25),
@@ -73,14 +73,14 @@ class Apelacion extends Model{
         type: DataType.INTEGER,
         field: 'IdCAtApelacion'
     })
-    declare idCAtApelacion: number
+    declare idApelacion: number
 
     @ForeignKey(() => TipoApelacion)
     @Column({
         type: DataType.INTEGER,
         field: 'IdCatTipoApelacion'
     })
-    declare idCatTipoApelacion: number
+    declare idTipoApelacion: number
 
     @Column({
         type: DataType.DATE,
@@ -99,7 +99,7 @@ class Apelacion extends Model{
         type: DataType.INTEGER,
         field: 'IdCatTipoEscrito'
     })
-    declare idCatTipoEscrito: number
+    declare idTipoEscrito: number
 
     @Column({
         type: DataType.STRING(35),
@@ -124,7 +124,7 @@ class Apelacion extends Model{
         type: DataType.INTEGER,
         field: 'IdCatJuzgadoOrigen'
     })
-    declare idCatJuzgadoOrigen: number
+    declare idJuzgado: number
 
     @Column({
         type: DataType.STRING(2500),
@@ -173,14 +173,14 @@ class Apelacion extends Model{
         type: DataType.INTEGER,
         field: 'IdCAtMunicipio'
     })
-    declare idCatMunicipio: number
+    declare idMunicipio: number
 
     @ForeignKey(() => CatLocalidad)
     @Column({
         type: DataType.INTEGER,
         field: 'IdCAtLocalidad'
     })
-    declare idCatLocalidad: number
+    declare idLocalidad: number
 
     @Column({
         type: DataType.STRING(200),
