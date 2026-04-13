@@ -1,9 +1,16 @@
 import { Sequelize } from 'sequelize-typescript';
+import SequelizeOriginal from 'sequelize';
 import dotenv from 'dotenv';
 import colors from 'colors';
 import path from 'path';
 
 dotenv.config();
+
+(SequelizeOriginal.DATE.prototype as any)._stringify = function _stringify(date: any, options: any) {
+  date = this._applyTimezone(date, options);
+  // Formato DateTime para SQL Server (MSSQL) 
+  return date.format('YYYY-MM-DD HH:mm:ss.SSS');
+};
 
 // Creamos la instancia de Sequelize
 export const sequelize = new Sequelize({

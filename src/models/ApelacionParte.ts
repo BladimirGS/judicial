@@ -1,7 +1,8 @@
-import { AutoIncrement, BelongsTo, Column, DataType, ForeignKey, Model, PrimaryKey, Table } from "sequelize-typescript";
+import { AutoIncrement, BelongsTo, Column, DataType, ForeignKey, HasMany, Model, PrimaryKey, Table } from "sequelize-typescript";
 import Apelacion from "./Apelacion";
 import TipoParte from "./TipoParte";
 import Sexo from "./CatSexo";
+import Relacion from "./Relacion";
 
 @Table({
     tableName: 'OFA_ApelacionPartes'
@@ -64,14 +65,17 @@ class ApelacionParte extends Model {
 
     // Relaciones
 
-    // @BelongsTo(() => Apelacion)
-    // declare apelacion: Apelacion;
+    @BelongsTo(() => Apelacion)
+    declare apelacion: Apelacion;
 
     @BelongsTo(() => TipoParte)
     declare tipoParte: TipoParte;
 
     @BelongsTo(() => Sexo)
     declare sexo: Sexo;
+
+    @HasMany(() => Relacion)
+    declare Relaciones: Relacion[];
 }
 
 export default ApelacionParte

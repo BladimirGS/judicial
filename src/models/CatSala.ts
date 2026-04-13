@@ -1,19 +1,19 @@
 import { AutoIncrement, Column, DataType, Model, PrimaryKey, Table } from "sequelize-typescript";
 
 @Table({
-    tableName: 'OFA_CAT_Sexo'
+    tableName: 'OFA_CAT_Salas'
 })
-class Sexo extends Model {
+class CatSala extends Model {
     @PrimaryKey
     @AutoIncrement
     @Column({
         type: DataType.INTEGER,
-        field: 'IdCatSexo',
+        field: 'IdSala',
     })
     declare id: number;
 
     @Column({
-        type: DataType.STRING(15),
+        type: DataType.STRING(200),
         field: 'Descripcion'
     })
     declare descripcion: string
@@ -25,4 +25,4 @@ class Sexo extends Model {
     declare activo: boolean
 }
 
-export default Sexo
+export default CatSala

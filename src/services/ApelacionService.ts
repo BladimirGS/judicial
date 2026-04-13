@@ -14,7 +14,6 @@ import Relacion from '../models/Relacion';
 import DelitoRelacion from '../models/DelitoRelacion';
 import CatDelito from '../models/CatDelito';
 import { sequelize } from '../config/database';
-import { Transaction } from 'sequelize';
 
 export class ApelacionService {
 
@@ -62,7 +61,7 @@ export class ApelacionService {
                 { all: true },
                 {
                     model: Relacion,
-                    attributes: ['id', 'activo'],
+                    attributes: ['id'],
                     separate: false, 
                     include: [
                         {
@@ -122,7 +121,6 @@ export class ApelacionService {
 
             relaciones: apelacion.relaciones?.map(r => ({
                 id: r.id,
-                activo: r.activo,
                 ofendido: {
                     id: r.ofendido?.id,
                     nombre: r.ofendido?.nombre ?? 'N/A',
@@ -145,29 +143,74 @@ export class ApelacionService {
     }
 
 static async create(data: any) {
-    const t = await sequelize.transaction(); // <--- USAR LA INSTANCIA IMPORTADA
+    const t = await sequelize.transaction();
 
     try {
-        const nuevaApelacion = await Apelacion.create(data, {
-            include: [
-                {
-                    model: Relacion,
-                    as: 'relaciones',
-                    include: [
-                        { model: ApelacionParte, as: 'ofendido' },
-                        { model: ApelacionParte, as: 'procesado' },
-                        { model: DelitoRelacion, as: 'delitoRelaciones' }
-                    ]
+        // 1. Crear la Apelación primero para obtener el ID real de SQL Server
+        // Solo enviamos los datos de la apelación (sin hijos aún)
+        const nuevaApelacion = await Apelacion.create(data, { transaction: t });
+
+        // 2. Si hay relaciones, las procesamos e inyectamos el ID manualmente
+        if (data.relaciones && Array.isArray(data.relaciones)) {
+            for (const rel of data.relaciones) {
+                
+                // Propagamos el IdApelacion y Activo a las Partes (Ofendido/Procesado)
+                // Esto asegura que no lleguen NULL a la BD
+                const partesData = [];
+                
+                if (rel.ofendido) {
+                    partesData.push({
+                        ...rel.ofendido,
+                        idApelacion: nuevaApelacion.id,
+                        activo: data.activo ?? true,
+                        menorEdad: false
+                    });
                 }
-            ],
-            transaction: t // <--- PASAR LA TRANSACCIÓN AQUÍ
-        });
+                
+                if (rel.procesado) {
+                    partesData.push({
+                        ...rel.procesado,
+                        idApelacion: nuevaApelacion.id,
+                        activo: data.activo ?? true,
+                        menorEdad: false
+                    });
+                }
+
+                // Creamos las partes manualmente dentro de la transacción
+                const partesCreadas = await ApelacionParte.bulkCreate(partesData, { 
+                    transaction: t, 
+                    returning: true 
+                });
+
+                // 3. Crear la Relación vinculando los IDs de las partes recién creadas
+                const nuevaRelacion = await Relacion.create({
+                    idApelacion: nuevaApelacion.id,
+                    activo: data.activo ?? true,
+                    // Asignamos los IDs basándonos en el orden o tipo de parte
+                    idApelacionParteOfendido: partesCreadas[0]?.id,
+                    idApelacionParteProcesado: partesCreadas[1]?.id
+                }, { transaction: t });
+
+                // 4. Crear los Delitos de esta relación
+                if (rel.delitoRelaciones && Array.isArray(rel.delitoRelaciones)) {
+                    const delitosData = rel.delitoRelaciones.map((dr: any) => ({
+                        ...dr,
+                        idRelacion: nuevaRelacion.id,
+                        activo: data.activo ?? true
+                    }));
+                    await DelitoRelacion.bulkCreate(delitosData, { transaction: t });
+                }
+            }
+        }
 
         await t.commit();
+        
+        // Retornamos la apelación completa (opcional: podrías hacer un getByFolio aquí)
         return nuevaApelacion;
+
     } catch (error) {
-        // Solo intentamos rollback si la conexión sigue viva
         if (t) await t.rollback();
+        console.error("Error en Transacción:", error);
         throw error;
     }
 }

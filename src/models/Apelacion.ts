@@ -10,6 +10,7 @@ import CatEtnia from "./CatEtnia"
 import CatJuzgado from "./CatJuzgado"
 import ApelacionParte from "./ApelacionParte"
 import Relacion from "./Relacion"
+import CatSala from "./CatSala"
 
 @Table({
     tableName: 'OFA_Apelaciones'
@@ -24,6 +25,7 @@ class Apelacion extends Model{
     })
     declare id: number
 
+    @ForeignKey(() => CatSala)
     @Column({
         type: DataType.INTEGER,
         field: 'IdSala'
@@ -207,6 +209,8 @@ class Apelacion extends Model{
     })
     declare idMagistradoAsignado: number
 
+    @BelongsTo(() => CatSala)
+    declare sala: CatSala;
 
     @BelongsTo(() => CatMateria)
     declare materia: CatMateria;
@@ -235,8 +239,8 @@ class Apelacion extends Model{
     @BelongsTo(() => CatEtnia)
     declare etnia: CatEtnia;
 
-    // @HasMany(() => ApelacionParte)
-    // declare apelacionPartes: ApelacionParte[];
+    @HasMany(() => ApelacionParte)
+    declare apelacionPartes: ApelacionParte[];
 
     @HasMany(() => Relacion)
     declare relaciones: Relacion[];

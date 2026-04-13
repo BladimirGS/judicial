@@ -13,7 +13,7 @@ class Delito extends Model {
     declare id: number;
 
     @Column({
-        type: DataType.STRING(30),
+        type: DataType.STRING(255),
         field: 'Delito'
     })
     declare delito: string
