@@ -1,14 +1,12 @@
 import { AutoIncrement, BelongsTo, Column, DataType, ForeignKey, HasMany, Model, PrimaryKey, Table } from "sequelize-typescript";
 import Apelacion from "./Apelacion";
-import ApelacionParte from "./ApelacionParte";
-import DelitoRelacion from './DelitoRelacion';
 import Anexo from "./CatAnexo";
 import CatAnexo from "./CatAnexo";
 
 @Table({
     tableName: 'OFA_ApelacionesAnexosOtros'
 })
-class Relacion extends Model {
+class ApelacionAnexo extends Model {
     @PrimaryKey
     @AutoIncrement
     @Column({
@@ -72,4 +70,4 @@ class Relacion extends Model {
     declare anexo: Anexo;
 }
 
-export default Relacion
+export default ApelacionAnexo

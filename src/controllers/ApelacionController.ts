@@ -89,5 +89,32 @@ search: async (req: Request, res: Response) => {
             res.status(500).json({ msg: 'Error interno' });
         }
     },
+    
+agregarAnexo: async (req: Request, res: Response) => {
+    try {
+        // req.body debe contener el id de la apelación y el array de anexos
+        const anexosRegistrados = await ApelacionService.agregarAnexo(req.body);
+
+        res.status(201).json({
+            msg: 'Anexos agregados correctamente',
+            data: anexosRegistrados
+        });
+    } catch (error: any) {
+        console.error('Error en agregarAnexo:', error);
+        
+        if (error.name === 'SequelizeValidationError') {
+            return res.status(400).json({ 
+                msg: 'Datos de anexos incorrectos', 
+                errors: error.errors.map((e: any) => e.message) 
+            });
+        }
+
+        if (error.name === 'SequelizeForeignKeyConstraintError') {
+            return res.status(400).json({ msg: 'Error: El ID de la apelación o del tipo de anexo no existe' });
+        }
+
+        res.status(500).json({ msg: 'Error al registrar los anexos' });
+    }
+}
 
 };

@@ -16,6 +16,7 @@ import CatDelito from '../models/CatDelito';
 import { sequelize } from '../config/database';
 import CatAnexo from '../models/CatAnexo';
 import { Op } from 'sequelize';
+import ApelacionAnexo from '../models/ApelacionAnexo';
 
 export class ApelacionService {
 
@@ -300,4 +301,36 @@ static async create(data: any) {
             return acc;
         }, {} as Record<string, any>);
     }
+
+static async agregarAnexo(data: any) {
+    // Iniciamos transacción por seguridad
+    const t = await sequelize.transaction();
+
+    try {
+        const { idApelacion, anexos, activo } = data;
+
+        if (!idApelacion) throw new Error("El ID de la apelación es obligatorio");
+        if (!anexos || !Array.isArray(anexos)) throw new Error("Debe enviar un array de anexos");
+
+        // Mapeamos los anexos para inyectar el IdTramite (idApelacion) y el estado Activo
+        const anexosData = anexos.map((anexo: any) => ({
+            ...anexo,
+            idApelacion: idApelacion, // Se mapea a IdTramite en la BD
+            activo: activo ?? true
+        }));
+
+        // Inserción múltiple
+        const nuevosAnexos = await ApelacionAnexo.bulkCreate(anexosData, { 
+            transaction: t,
+            validate: true 
+        });
+
+        await t.commit();
+        return nuevosAnexos;
+
+    } catch (error) {
+        if (t) await t.rollback();
+        throw error;
+    }
+}
 }

@@ -8,5 +8,7 @@ router.get('/buscar-apelacion', ApelacionController.getByFolio);
 router.post('/crear-apelacion', ApelacionController.create);
 router.get('/capturar-anexo', ApelacionController.listAnexos);
 router.get('/buscar', ApelacionController.search);
+router.post('/agregar-anexo', ApelacionController.agregarAnexo);
+
 
 export default router;
