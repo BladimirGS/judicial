@@ -15,6 +15,7 @@ import DelitoRelacion from '../models/DelitoRelacion';
 import CatDelito from '../models/CatDelito';
 import { sequelize } from '../config/database';
 import CatAnexo from '../models/CatAnexo';
+import { Op } from 'sequelize';
 
 export class ApelacionService {
 
@@ -142,6 +143,65 @@ export class ApelacionService {
             })) ?? []
         };
     }
+
+static async search(params: any) {
+    const where: any = {};
+    const whereParte: any = {};
+    const whereDelito: any = {};
+
+    // --- Filtros Tabla Principal ---
+    if (params.id) where.id = params.id;
+    if (params.folioOficialia) where.folioOficialia = { [Op.like]: `%${params.folioOficialia}%` };
+    if (params.folioApelacion) where.folioApelacion = { [Op.like]: `%${params.folioApelacion}%` };
+    if (params.expedienteCausa) where.expedienteCausa = { [Op.like]: `%${params.expedienteCausa}%` };
+    
+    // Filtro de fecha exacto o por rango
+    if (params.fechaAuto) {
+        where.fechaAuto = params.fechaAuto; 
+    }
+
+    // --- Filtros Tablas Relacionadas ---
+    if (params.nombreParte) {
+        whereParte.nombre = { [Op.like]: `%${params.nombreParte}%` };
+    }
+    
+    if (params.nombreDelito) {
+        whereDelito.delito = { [Op.like]: `%${params.nombreDelito}%` };
+    }
+
+    return await Apelacion.findAll({
+        where,
+        include: [
+            {
+                model: Relacion,
+                as: 'relaciones',
+                include: [
+                    { 
+                        model: ApelacionParte, 
+                        as: 'ofendido',
+                        where: params.nombreParte ? whereParte : undefined,
+                        required: false // Permitir que encuentre aunque solo coincida uno
+                    },
+                    { 
+                        model: ApelacionParte, 
+                        as: 'procesado',
+                        where: params.nombreParte ? whereParte : undefined,
+                        required: false 
+                    },
+                    {
+                        model: DelitoRelacion,
+                        as: 'delitoRelaciones',
+                        include: [{
+                            model: CatDelito,
+                            as: 'delito',
+                            where: params.nombreDelito ? whereDelito : undefined
+                        }]
+                    }
+                ]
+            }
+        ]
+    });
+}
 
 static async create(data: any) {
     const t = await sequelize.transaction();

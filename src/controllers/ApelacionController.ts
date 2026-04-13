@@ -34,6 +34,24 @@ export const ApelacionController = {
         }
     },
 
+search: async (req: Request, res: Response) => {
+    try {
+        // Recibimos el JSON desde el body
+        const filtros = req.body;
+
+        if (Object.keys(filtros).length === 0) {
+            return res.status(400).json({ msg: 'Debe proporcionar al menos un criterio de búsqueda' });
+        }
+
+        const resultados = await ApelacionService.search(filtros);
+
+        res.json(resultados);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ msg: 'Error al realizar la búsqueda' });
+    }
+},
+
     create: async (req: Request, res: Response) => {
         try {
             // El req.body debe contener el objeto anidado
