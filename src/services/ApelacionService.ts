@@ -70,7 +70,7 @@ export class ApelacionService {
                         {
                             model: ApelacionParte,
                             as: 'ofendido',
-                            attributes: ['id', 'nombre'],
+                            attributes: ['id', 'nombre', 'direccion', 'menorEdad', 'activo'],
                             include: [
                                 { model: Sexo, attributes: ['descripcion'] },
                                 { model: TipoParte, attributes: ['descripcion'] }
@@ -79,7 +79,7 @@ export class ApelacionService {
                         {
                             model: ApelacionParte,
                             as: 'procesado',
-                            attributes: ['id', 'nombre'],
+                            attributes: ['id', 'nombre', 'direccion', 'menorEdad', 'activo'],
                             include: [
                                 { model: Sexo, attributes: ['descripcion'] },
                                 { model: TipoParte, attributes: ['descripcion'] }
@@ -127,12 +127,16 @@ export class ApelacionService {
                 ofendido: {
                     id: r.ofendido?.id,
                     nombre: r.ofendido?.nombre ?? 'N/A',
+                    direccion: r.ofendido?.direccion ?? 'N/A',
+                    menorEdad: r.ofendido?.menorEdad ?? true,
                     sexo: r.ofendido?.sexo?.descripcion ?? 'N/A',
                     tipoParte: r.ofendido?.tipoParte?.descripcion ?? 'N/A'
                 },
                 procesado: {
                     id: r.procesado?.id,
                     nombre: r.procesado?.nombre ?? 'N/A',
+                    direccion: r.procesado?.direccion ?? 'N/A',
+                    menorEdad: r.procesado?.menorEdad ?? true,
                     sexo: r.procesado?.sexo?.descripcion ?? 'N/A',
                     tipoParte: r.procesado?.tipoParte?.descripcion ?? 'N/A'
                 },
