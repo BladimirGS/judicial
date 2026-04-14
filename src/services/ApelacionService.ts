@@ -14,9 +14,11 @@ import Relacion from '../models/Relacion';
 import DelitoRelacion from '../models/DelitoRelacion';
 import CatDelito from '../models/CatDelito';
 import { sequelize } from '../config/database';
-import CatAnexo from '../models/CatAnexo';
+// import CatAnexo from '../models/CatAnexo';
 import { Op } from 'sequelize';
 import ApelacionAnexo from '../models/ApelacionAnexo';
+import { CatAnexo } from '../entities/CatAnexo.entity';
+import { AppDataSource } from '../config/typeorm.config';
 
 export class ApelacionService {
 
@@ -281,22 +283,25 @@ static async create(data: any) {
     }
 }
 
-    static async listAnexos() {
-        const catalogs: Record<string, any> = {
+static async listAnexos() {
+        const catalogs = {
             anexo: CatAnexo,
+            // materia: CatMateria,
         };
 
         const results = await Promise.all(
-            Object.entries(catalogs).map(async ([key, model]) => {
-                const attributes = ['id', 'activo', 'descripcion'];
-                
-                const data = await model.findAll({ attributes });
-                
-                return data.map((item: any) => ({
-                    id: item.id,
-                    activo: item.activo,
-                    descripcion: item.descripcion
-                }));
+            Object.entries(catalogs).map(async ([key, entityClass]) => {
+                // Paso 1: Obtener el repositorio de la entidad
+                const repository = AppDataSource.getRepository(entityClass);
+
+                // Paso 2: Realizar la búsqueda
+                return await repository.find({
+                    select: {
+                        id: true,
+                        activo: true,
+                        descripcion: true
+                    }
+                });
             })
         );
 

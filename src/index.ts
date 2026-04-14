@@ -2,7 +2,7 @@ import 'reflect-metadata';
 import dotenv from 'dotenv';
 import colors from 'colors';
 import server from './server';
-import { connectDB } from './config/database';
+import { connectDB } from './config/typeorm.config';
 
 dotenv.config();
 
