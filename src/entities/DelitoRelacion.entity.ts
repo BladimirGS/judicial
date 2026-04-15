@@ -13,7 +13,7 @@ export class DelitoRelacion {
         type: 'bit', 
         default: true 
     })
-    activo!: boolean;
+    activo: boolean = true;
 
     // --- Relaciones ---
 

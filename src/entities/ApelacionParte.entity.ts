@@ -37,9 +37,8 @@ export class ApelacionParte {
     @Column({ 
         name: 'Activo', 
         type: 'bit', 
-        default: true 
     })
-    activo!: boolean;
+    activo: boolean = true;
 
     // --- Relaciones ManyToOne (BelongsTo) ---
 

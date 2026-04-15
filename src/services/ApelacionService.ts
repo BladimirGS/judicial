@@ -11,11 +11,8 @@ import { Apelacion } from '../entities/Apelacion.entity';
 import { CatJuzgado } from '../entities/CatJuzgado.entity';
 import { Relacion } from '../entities/Relacion.entity';
 import { ApelacionParte } from '../entities/ApelacionParte.entity';
-import { CatSexo } from '../entities/CatSexo.entity';
-import { TipoParte } from '../entities/TipoParte.entity';
 import { DelitoRelacion } from '../entities/DelitoRelacion.entity';
 import { CatAnexo } from '../entities/CatAnexo.entity';
-import { Like } from 'typeorm';
 import { ApelacionAnexo } from '../entities/ApelacionAnexo.entity';
 
 export class ApelacionService {
@@ -225,95 +222,91 @@ static async search(params: any) {
     }));
 }
 
+
     static async create(data: any) {
-        // Usamos el queryRunner para manejar la transacción manualmente
+        // 1. Definimos qué campos permitimos para la Apelación
+        const apelacionFields = [
+            'idSala', 'idMateria', 'folioOficialia', 'idNomenclatura', 'folioApelacion',
+            'idApelacion', 'idTipoApelacion', 'fechaAuto', 'expedienteCausa', 'idTipoEscrito',
+            'folioOficio', 'fojas', 'expedienteAcumulado', 'idJuzgado', 'observaciones',
+            'fechaHoraRecepcion', 'certificacion', 'esReposicion', 'idMunicipio',
+            'idLocalidad', 'lugarHechos', 'asunto', 'idEtnia'
+        ];
+
+        // Limpiamos el objeto principal
+        const cleanApelacion = Object.keys(data)
+            .filter(key => apelacionFields.includes(key))
+            .reduce((obj, key) => { obj[key] = data[key]; return obj; }, {} as any);
+
+        // Forzamos el valor por defecto antes de crear la entidad ---------------------------------
+        cleanApelacion.idSala = 1;
+
         const queryRunner = AppDataSource.createQueryRunner();
         await queryRunner.connect();
         await queryRunner.startTransaction();
 
         try {
-            // 1. Crear la instancia de Apelación
-            // .create() de TypeORM solo crea la instancia en memoria, no guarda en DB aún
-            const nuevaApelacion = queryRunner.manager.create(Apelacion, {
-                ...data,
-                activo: data.activo ?? true
-            });
-            
-            // Guardamos para obtener el ID real de SQL Server
+            // Guardar Apelación limpia
+            const nuevaApelacion = queryRunner.manager.create(Apelacion, cleanApelacion);
             const apelacionGuardada = await queryRunner.manager.save(nuevaApelacion);
 
-            // 2. Procesar Relaciones
+            // 3. Procesar Relaciones con validación interna
             if (data.relaciones && Array.isArray(data.relaciones)) {
                 for (const rel of data.relaciones) {
                     
-                    // Crear Partes (Ofendido)
-                    let ofendido = null;
-                    if (rel.ofendido) {
-                        ofendido = await queryRunner.manager.save(
+                    // Limpieza de datos de las Partes
+                    const crearParte = async (parteData: any) => {
+                        if (!parteData?.nombre) return null;
+                        return await queryRunner.manager.save(
                             queryRunner.manager.create(ApelacionParte, {
-                                ...rel.ofendido,
+                                nombre: parteData.nombre,
+                                direccion: parteData.direccion,
+                                menorEdad: parteData.menorEdad ?? false,
+                                idTipoParte: parteData.idTipoParte,
+                                idSexo: parteData.idSexo,
                                 idApelacion: apelacionGuardada.id,
-                                activo: data.activo ?? true,
-                                menorEdad: rel.ofendido.menorEdad ?? false
                             })
                         );
-                    }
+                    };
 
-                    // Crear Partes (Procesado)
-                    let procesado = null;
-                    if (rel.procesado) {
-                        procesado = await queryRunner.manager.save(
-                            queryRunner.manager.create(ApelacionParte, {
-                                ...rel.procesado,
+                    const ofendido = await crearParte(rel.ofendido);
+                    const procesado = await crearParte(rel.procesado);
+
+                    // Solo creamos la relación si al menos hay una parte involucrada
+                    if (ofendido || procesado) {
+                        const nuevaRelacion = await queryRunner.manager.save(
+                            queryRunner.manager.create(Relacion, {
                                 idApelacion: apelacionGuardada.id,
-                                activo: data.activo ?? true,
-                                menorEdad: rel.procesado.menorEdad ?? false
+                                idApelacionParteOfendido: ofendido?.id,
+                                idApelacionParteProcesado: procesado?.id,
                             })
                         );
-                    }
 
-                    // 3. Crear la Relación vinculando los IDs recién generados
-                    const nuevaRelacion = await queryRunner.manager.save(
-                        queryRunner.manager.create(Relacion, {
-                            idApelacion: apelacionGuardada.id,
-                            idApelacionParteOfendido: ofendido?.id,
-                            idApelacionParteProcesado: procesado?.id,
-                            activo: data.activo ?? true
-                        })
-                    );
-
-                    // 4. Crear los Delitos asociados a esta relación
-                    if (rel.delitoRelaciones && Array.isArray(rel.delitoRelaciones)) {
-                        const delitosParaGuardar = rel.delitoRelaciones.map((dr: any) => 
-                            queryRunner.manager.create(DelitoRelacion, {
-                                ...dr,
-                                idRelacion: nuevaRelacion.id,
-                                activo: data.activo ?? true
-                            })
-                        );
-                        await queryRunner.manager.save(delitosParaGuardar);
+                        // 4. Delitos (Solo permitimos idCatDelito)
+                        if (rel.delitoRelaciones && Array.isArray(rel.delitoRelaciones)) {
+                            const delitosData = rel.delitoRelaciones
+                                .filter((dr: any) => dr.idDelito) // Validación: que traiga ID de delito
+                                .map((dr: any) => queryRunner.manager.create(DelitoRelacion, {
+                                    idDelito: dr.idDelito,
+                                    idRelacion: nuevaRelacion.id,
+                                }));
+                            
+                            if (delitosData.length > 0) await queryRunner.manager.save(delitosData);
+                        }
                     }
                 }
             }
 
-            // Confirmamos los cambios en la BD
             await queryRunner.commitTransaction();
-            
-            // Opcional: Retornar la apelación con su ID generado
             return apelacionGuardada;
 
         } catch (error) {
-            // Si algo falla, revertimos todo (Atomacidad)
             await queryRunner.rollbackTransaction();
-            console.error("Error en Transacción TypeORM:", error);
             throw error;
         } finally {
-            // Liberamos el queryRunner
             await queryRunner.release();
         }
     }
-
-
 
 static async listAnexos() {
         const catalogs = {
@@ -348,7 +341,7 @@ static async listAnexos() {
         await queryRunner.startTransaction();
 
         try {
-            const { idApelacion, anexos, activo } = data;
+            const { idApelacion, anexos } = data;
 
             // Validaciones iniciales
             if (!idApelacion) throw new Error("El ID de la apelación es obligatorio");
@@ -358,8 +351,7 @@ static async listAnexos() {
             const anexosEntities = anexos.map((anexo: any) => {
                 return queryRunner.manager.create(ApelacionAnexo, {
                     ...anexo,
-                    idApelacion: idApelacion, // Mapeado a IdTramite en tu Entity
-                    activo: activo ?? true
+                    idApelacion: idApelacion,
                 });
             });
 

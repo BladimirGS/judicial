@@ -41,9 +41,8 @@ export class ApelacionAnexo {
     @Column({ 
         name: 'Activo', 
         type: 'bit', 
-        default: true 
     })
-    activo!: boolean;
+    activo: boolean = true;
 
     // --- Llaves Foráneas (Columnas Físicas) ---
 

@@ -52,7 +52,7 @@ export class Apelacion {
     @Column({ name: 'FechaHoraRecepcionAnterior', type: 'datetime', nullable: true })
     fechaHoraRecepcionAnterior!: Date;
 
-    @Column({ name: 'FechaHoraIngresoJuz', type: 'datetime', nullable: true })
+    @Column({ name: 'FechaHoraIngresoJuz', type: 'datetime' })
     fechaHoraIngresoJuz!: Date;
 
     @Column({ name: 'Certificacion', type: 'int', nullable: true })
@@ -62,7 +62,7 @@ export class Apelacion {
     esReposicion!: boolean;
 
     @Column({ name: 'Activo', type: 'bit', default: true })
-    activo!: boolean;
+    activo: boolean = true;
 
     @Column({ name: 'LugarHechos', length: 200, nullable: true })
     lugarHechos!: string;

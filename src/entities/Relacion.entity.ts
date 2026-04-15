@@ -14,7 +14,7 @@ export class Relacion {
         type: 'bit', 
         default: true 
     })
-    activo!: boolean;
+    activo: boolean = true;
 
     // Relaciones ManyToOne
 
