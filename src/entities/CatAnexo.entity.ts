@@ -10,13 +10,13 @@ export class CatAnexo extends BaseEntity {
         name: 'Descripcion', 
         type: 'varchar', 
         length: 250, 
-        nullable: true // Sequelize por defecto permite null si no especificas
+        nullable: true 
     })
     descripcion!: string;
 
     @Column({ 
         name: 'RequiereEscaneo', 
-        type: 'bit', // En SQL Server el booleano es tipo bit
+        type: 'bit',
         default: false 
     })
     requiereEscaneo!: boolean;

@@ -1,15 +1,15 @@
 import { Entity, PrimaryGeneratedColumn, Column } from "typeorm";
 
-@Entity({ name: 'OFA_CAT_Sexo' })
-export class Sexo {
+@Entity({ name: 'OFA_CAT_Delitos' })
+export class CatDelito {
 
-    @PrimaryGeneratedColumn({ name: 'IdCatSexo' })
+    @PrimaryGeneratedColumn({ name: 'IdCatDelito' })
     id!: number;
 
     @Column({ 
-        name: 'Descripcion', 
+        name: 'Delito', 
         type: 'varchar', 
-        length: 15, 
+        length: 255, 
         nullable: true 
     })
     descripcion!: string;

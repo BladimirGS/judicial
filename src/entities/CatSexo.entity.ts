@@ -1,18 +1,17 @@
 import { Entity, PrimaryGeneratedColumn, Column } from "typeorm";
 
-@Entity({ name: 'OFA_CAT_Delitos' })
-export class Delito {
+@Entity({ name: 'OFA_CAT_Sexo' })
+export class CatSexo {
 
-    @PrimaryGeneratedColumn({ name: 'IdCatDelito' })
+    @PrimaryGeneratedColumn({ name: 'IdCatSexo' })
     id!: number;
 
     @Column({ 
-        name: 'Delito', // El nombre físico en SQL Server
+        name: 'Descripcion', 
         type: 'varchar', 
-        length: 255, 
+        length: 15, 
         nullable: true 
     })
-    // Mantenemos el nombre de la propiedad como 'delito' para tu lógica dinámica
     descripcion!: string;
 
     @Column({ 

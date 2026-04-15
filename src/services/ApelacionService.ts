@@ -1,24 +1,21 @@
-import CatMateria from '../models/CatMateria';
-import CatJuzgados from '../models/CatJuzgado';
-import CatApelacion from '../models/CatApelacion';
-import TipoApelacion from '../models/TipoApelacion';
-import TipoEscrito from '../models/TipoEscrito';
-import CatMunicipio from '../models/CatMunicipio';
-import CatLocalidad from '../models/CatLocalidad';
-import CatEtnia from '../models/CatEtnia';
-import Apelacion from '../models/Apelacion';
-import ApelacionParte from '../models/ApelacionParte';
-import TipoParte from '../models/TipoParte';
-import Sexo from '../models/CatSexo';
-import Relacion from '../models/Relacion';
-import DelitoRelacion from '../models/DelitoRelacion';
-import CatDelito from '../models/CatDelito';
-import { sequelize } from '../config/database';
-// import CatAnexo from '../models/CatAnexo';
-import { Op } from 'sequelize';
-import ApelacionAnexo from '../models/ApelacionAnexo';
-import { CatAnexo } from '../entities/CatAnexo.entity';
 import { AppDataSource } from '../config/typeorm.config';
+import { CatMateria } from '../entities/CatMateria.entity';
+import { TipoApelacion } from '../entities/TipoApelacion.entity';
+import { CatApelacion } from '../entities/CatApelacion.entity';
+import { TipoEscrito } from '../entities/TipoEscrito.entity';
+import { CatLocalidad } from '../entities/CatLocalidad.entity';
+import { CatMunicipio } from '../entities/CatMunicipio.entity';
+import { CatEtnia } from '../entities/CatEtnia.entity';
+import { CatDelito } from '../entities/CatDelito.entity';
+import { Apelacion } from '../entities/Apelacion.entity';
+import { CatJuzgado } from '../entities/CatJuzgado.entity';
+import { Relacion } from '../entities/Relacion.entity';
+import { ApelacionParte } from '../entities/ApelacionParte.entity';
+import { CatSexo } from '../entities/CatSexo.entity';
+import { TipoParte } from '../entities/TipoParte.entity';
+import { DelitoRelacion } from '../entities/DelitoRelacion.entity';
+import { CatAnexo } from '../entities/CatAnexo.entity';
+import { Like } from 'typeorm';
 
 export class ApelacionService {
 
@@ -28,7 +25,7 @@ export class ApelacionService {
             apelaciones: CatApelacion,
             tiposApelaciones: TipoApelacion,
             tiposEscritos: TipoEscrito,
-            juzgados: CatJuzgados,
+            juzgados: CatJuzgado,
             municipios: CatMunicipio,
             localidades: CatLocalidad,
             etnias: CatEtnia,
@@ -36,19 +33,21 @@ export class ApelacionService {
         };
 
         const results = await Promise.all(
-            Object.entries(catalogs).map(async ([key, model]) => {
-                const attributes = ['id', 'activo', key === 'delitos' ? 'delito' : 'descripcion'];
-                
-                const data = await model.findAll({ attributes });
-                
-                return data.map((item: any) => ({
-                    id: item.id,
-                    activo: item.activo,
-                    descripcion: key === 'delitos' ? item.delito : item.descripcion
-                }));
+            Object.entries(catalogs).map(async ([_, entityClass]) => {
+                const repo = AppDataSource.getRepository(entityClass);
+
+                return await repo.find({
+                    select: {
+                        id: true,
+                        activo: true,
+                        descripcion: true
+                    },
+                    where: { activo: true } 
+                });
             })
         );
 
+        // Objeto de respuesta
         return Object.keys(catalogs).reduce((acc, key, index) => {
             acc[key] = results[index];
             return acc;
@@ -56,54 +55,52 @@ export class ApelacionService {
     }
 
     static async getByFolio(folio: string) {
-        const apelaciones = await Apelacion.findAll({ 
-            where: { folioOficialia: folio },
-            attributes: [
-                    'id', 'folioOficialia', 'folioApelacion', 'expedienteCausa', 
-                    'fojas', 'esReposicion', 'fechaAuto', 'observaciones', 'asunto', 'lugarHechos'
-                ],
-            include: [
-                { all: true },
-                {
-                    model: Relacion,
-                    attributes: ['id'],
-                    separate: false, 
-                    include: [
-                        {
-                            model: ApelacionParte,
-                            as: 'ofendido',
-                            attributes: ['id', 'nombre', 'direccion', 'menorEdad', 'activo'],
-                            include: [
-                                { model: Sexo, attributes: ['descripcion'] },
-                                { model: TipoParte, attributes: ['descripcion'] }
-                            ]
-                        },
-                        {
-                            model: ApelacionParte,
-                            as: 'procesado',
-                            attributes: ['id', 'nombre', 'direccion', 'menorEdad', 'activo'],
-                            include: [
-                                { model: Sexo, attributes: ['descripcion'] },
-                                { model: TipoParte, attributes: ['descripcion'] }
-                            ]
-                        },
-                        {
-                            model: DelitoRelacion,
-                            attributes: ['id'],
-                            include: [{ model: CatDelito, attributes: ['delito'] }]
-                        }
-                    ]
-                }
-            ],
-            subQuery: false, 
-        });
+        const repo = AppDataSource.getRepository(Apelacion);
 
-        const apelacion = apelaciones[0];
+        const apelacion = await repo.findOne({
+            where: { folioOficialia: folio },
+            // Seleccionamos solo las columnas necesarias de la tabla principal
+            select: {
+                id: true,
+                folioOficialia: true,
+                folioApelacion: true,
+                expedienteCausa: true,
+                fojas: true,
+                esReposicion: true,
+                fechaAuto: true,
+                observaciones: true,
+                asunto: true,
+                lugarHechos: true
+            },
+            // Cargamos las relaciones anidadas (el árbol de la Toca)
+            relations: {
+                materia: true,
+                etnia: true,
+                tipoApelacion: true,
+                tipoEscrito: true,
+                catJuzgado: true,
+                municipio: true,
+                localidad: true,
+                relaciones: {
+                    ofendido: {
+                        sexo: true,
+                        tipoParte: true
+                    },
+                    procesado: {
+                        sexo: true,
+                        tipoParte: true
+                    },
+                    delitoRelaciones: {
+                        delito: true
+                    }
+                }
+            }
+        });
 
         if (!apelacion) return null;
 
+        // El mapeo de retorno para el Frontend
         return {
-
             id: apelacion.id,
             folioOficialia: apelacion.folioOficialia,
             folioApelacion: apelacion.folioApelacion,
@@ -115,186 +112,219 @@ export class ApelacionService {
             asunto: apelacion.asunto,
             lugarHechos: apelacion.lugarHechos,
 
-            // Relaciones 
-            materia: apelacion.materia?.descripcion ?? 'N/A',
-            etnia: apelacion.etnia?.descripcion ?? 'N/A',
-            tipoApelacion: apelacion.tipoApelacion?.descripcion ?? 'N/A',
-            tipoEscrito: apelacion.tipoEscrito?.descripcion ?? 'N/A',
-            juzgadoOrigen: apelacion.catJuzgado?.descripcion ?? 'N/A',
-            municipio: apelacion.municipio?.descripcion ?? 'N/A',
-            localidad: apelacion.localidad?.descripcion ?? 'N/A',
+            // Relaciones directas
+            materia: apelacion.materia?.descripcion ?? null,
+            etnia: apelacion.etnia?.descripcion ?? null,
+            tipoApelacion: apelacion.tipoApelacion?.descripcion ?? null,
+            tipoEscrito: apelacion.tipoEscrito?.descripcion ?? null,
+            juzgadoOrigen: apelacion.catJuzgado?.descripcion ?? null,
+            municipio: apelacion.municipio?.descripcion ?? null,
+            localidad: apelacion.localidad?.descripcion ?? null,
 
+            // Mapeo de Relaciones
             relaciones: apelacion.relaciones?.map(r => ({
                 id: r.id,
                 ofendido: {
                     id: r.ofendido?.id,
-                    nombre: r.ofendido?.nombre ?? 'N/A',
-                    direccion: r.ofendido?.direccion ?? 'N/A',
-                    menorEdad: r.ofendido?.menorEdad ?? true,
-                    sexo: r.ofendido?.sexo?.descripcion ?? 'N/A',
-                    tipoParte: r.ofendido?.tipoParte?.descripcion ?? 'N/A'
+                    nombre: r.ofendido?.nombre ?? null,
+                    direccion: r.ofendido?.direccion ?? null,
+                    menorEdad: r.ofendido?.menorEdad ?? false,
+                    sexo: r.ofendido?.sexo?.descripcion ?? null,
+                    tipoParte: r.ofendido?.tipoParte?.descripcion ?? null
                 },
                 procesado: {
                     id: r.procesado?.id,
-                    nombre: r.procesado?.nombre ?? 'N/A',
-                    direccion: r.procesado?.direccion ?? 'N/A',
-                    menorEdad: r.procesado?.menorEdad ?? true,
-                    sexo: r.procesado?.sexo?.descripcion ?? 'N/A',
-                    tipoParte: r.procesado?.tipoParte?.descripcion ?? 'N/A'
+                    nombre: r.procesado?.nombre ?? null,
+                    direccion: r.procesado?.direccion ?? null,
+                    menorEdad: r.procesado?.menorEdad ?? false,
+                    sexo: r.procesado?.sexo?.descripcion ?? null,
+                    tipoParte: r.procesado?.tipoParte?.descripcion ?? null
                 },
-                
                 delitosRelacion: r.delitoRelaciones?.map(dr => ({
                     id: dr.id,
-                    nombreDelito: dr.delito?.delito ?? 'N/A' 
+                    nombreDelito: dr.delito?.descripcion ?? null 
                 })) ?? []
             })) ?? []
         };
     }
 
 static async search(params: any) {
-    const where: any = {};
-    const whereParte: any = {};
-    const whereDelito: any = {};
+    const query = AppDataSource.getRepository(Apelacion)
+        .createQueryBuilder("apelacion")
+        // Traemos las relaciones principales para mostrar en la tabla/lista
+        .leftJoinAndSelect("apelacion.materia", "materia")
+        .leftJoinAndSelect("apelacion.catJuzgado", "juzgado")
+        // Traemos el árbol de relaciones para el filtrado y detalle
+        .leftJoinAndSelect("apelacion.relaciones", "rel")
+        .leftJoinAndSelect("rel.ofendido", "ofendido")
+        .leftJoinAndSelect("ofendido.sexo", "oSexe")
+        .leftJoinAndSelect("ofendido.tipoParte", "oTipo")
+        .leftJoinAndSelect("rel.procesado", "procesado")
+        .leftJoinAndSelect("procesado.sexo", "pSexe")
+        .leftJoinAndSelect("procesado.tipoParte", "pTipo")
+        .leftJoinAndSelect("rel.delitoRelaciones", "dr")
+        .leftJoinAndSelect("dr.delito", "delito");
 
-    // --- Filtros Tabla Principal ---
-    if (params.id) where.id = params.id;
-    if (params.folioOficialia) where.folioOficialia = { [Op.like]: `%${params.folioOficialia}%` };
-    if (params.folioApelacion) where.folioApelacion = { [Op.like]: `%${params.folioApelacion}%` };
-    if (params.expedienteCausa) where.expedienteCausa = { [Op.like]: `%${params.expedienteCausa}%` };
-    
-    // Filtro de fecha exacto o por rango
-    if (params.fechaAuto) {
-        where.fechaAuto = params.fechaAuto; 
+    // --- Filtros Dinámicos ---
+    if (params.id) {
+        query.andWhere("apelacion.id = :id", { id: params.id });
     }
 
-    // --- Filtros Tablas Relacionadas ---
+    if (params.folioOficialia) {
+        query.andWhere("apelacion.folioOficialia LIKE :folio", { folio: `%${params.folioOficialia}%` });
+    }
+
+    if (params.folioApelacion) {
+        query.andWhere("apelacion.folioApelacion LIKE :fApel", { fApel: `%${params.folioApelacion}%` });
+    }
+
+    if (params.expedienteCausa) {
+        query.andWhere("apelacion.expedienteCausa LIKE :causa", { causa: `%${params.expedienteCausa}%` });
+    }
+
     if (params.nombreParte) {
-        whereParte.nombre = { [Op.like]: `%${params.nombreParte}%` };
+        query.andWhere("(ofendido.nombre LIKE :parte OR procesado.nombre LIKE :parte)", { parte: `%${params.nombreParte}%` });
     }
-    
+
     if (params.nombreDelito) {
-        whereDelito.delito = { [Op.like]: `%${params.nombreDelito}%` };
+        query.andWhere("delito.descripcion LIKE :delitoNom", { delitoNom: `%${params.nombreDelito}%` });
     }
 
-    return await Apelacion.findAll({
-        where,
-        include: [
-            {
-                model: Relacion,
-                as: 'relaciones',
-                include: [
-                    { 
-                        model: ApelacionParte, 
-                        as: 'ofendido',
-                        where: params.nombreParte ? whereParte : undefined,
-                        required: false // Permitir que encuentre aunque solo coincida uno
-                    },
-                    { 
-                        model: ApelacionParte, 
-                        as: 'procesado',
-                        where: params.nombreParte ? whereParte : undefined,
-                        required: false 
-                    },
-                    {
-                        model: DelitoRelacion,
-                        as: 'delitoRelaciones',
-                        include: [{
-                            model: CatDelito,
-                            as: 'delito',
-                            where: params.nombreDelito ? whereDelito : undefined
-                        }]
-                    }
-                ]
-            }
-        ]
-    });
-}
+    // Ejecutamos la consulta
+    const resultados = await query.getMany();
 
-static async create(data: any) {
-    const t = await sequelize.transaction();
-
-    try {
-        // 1. Crear la Apelación primero para obtener el ID real de SQL Server
-        // Solo enviamos los datos de la apelación (sin hijos aún)
-        const nuevaApelacion = await Apelacion.create(data, { transaction: t });
-
-        // 2. Si hay relaciones, las procesamos e inyectamos el ID manualmente
-        if (data.relaciones && Array.isArray(data.relaciones)) {
-            for (const rel of data.relaciones) {
-                
-                // Propagamos el IdApelacion y Activo a las Partes (Ofendido/Procesado)
-                // Esto asegura que no lleguen NULL a la BD
-                const partesData = [];
-                
-                if (rel.ofendido) {
-                    partesData.push({
-                        ...rel.ofendido,
-                        idApelacion: nuevaApelacion.id,
-                        activo: data.activo ?? true,
-                        menorEdad: false
-                    });
-                }
-                
-                if (rel.procesado) {
-                    partesData.push({
-                        ...rel.procesado,
-                        idApelacion: nuevaApelacion.id,
-                        activo: data.activo ?? true,
-                        menorEdad: false
-                    });
-                }
-
-                // Creamos las partes manualmente dentro de la transacción
-                const partesCreadas = await ApelacionParte.bulkCreate(partesData, { 
-                    transaction: t, 
-                    returning: true 
-                });
-
-                // 3. Crear la Relación vinculando los IDs de las partes recién creadas
-                const nuevaRelacion = await Relacion.create({
-                    idApelacion: nuevaApelacion.id,
-                    activo: data.activo ?? true,
-                    // Asignamos los IDs basándonos en el orden o tipo de parte
-                    idApelacionParteOfendido: partesCreadas[0]?.id,
-                    idApelacionParteProcesado: partesCreadas[1]?.id
-                }, { transaction: t });
-
-                // 4. Crear los Delitos de esta relación
-                if (rel.delitoRelaciones && Array.isArray(rel.delitoRelaciones)) {
-                    const delitosData = rel.delitoRelaciones.map((dr: any) => ({
-                        ...dr,
-                        idRelacion: nuevaRelacion.id,
-                        activo: data.activo ?? true
-                    }));
-                    await DelitoRelacion.bulkCreate(delitosData, { transaction: t });
-                }
-            }
-        }
-
-        await t.commit();
+    // Mapeamos los resultados para que el Controller entregue JSON limpio
+    return resultados.map(apelacion => ({
+        id: apelacion.id,
+        folioOficialia: apelacion.folioOficialia,
+        folioApelacion: apelacion.folioApelacion,
+        expedienteCausa: apelacion.expedienteCausa,
+        fechaAuto: apelacion.fechaAuto,
+        asunto: apelacion.asunto,
         
-        // Retornamos la apelación completa (opcional: podrías hacer un getByFolio aquí)
-        return nuevaApelacion;
+        // Descripciones de catálogos nivel 1
+        materia: apelacion.materia?.descripcion ?? null,
+        juzgado: apelacion.catJuzgado?.descripcion ?? null,
 
-    } catch (error) {
-        if (t) await t.rollback();
-        console.error("Error en Transacción:", error);
-        throw error;
-    }
+        // Resumen de partes y delitos para la vista de lista
+        relaciones: apelacion.relaciones?.map(r => ({
+            id: r.id,
+            ofendido: {
+                id: r.ofendido?.id,
+                nombre: r.ofendido?.nombre ?? null,
+                sexo: r.ofendido?.sexo?.descripcion ?? null
+            },
+            procesado: {
+                id: r.procesado?.id,
+                nombre: r.procesado?.nombre ?? null,
+                sexo: r.procesado?.sexo?.descripcion ?? null
+            },
+            delitos: r.delitoRelaciones?.map(dr => dr.delito?.descripcion ?? null) ?? []
+        })) ?? []
+    }));
 }
+
+    static async create(data: any) {
+        // Usamos el queryRunner para manejar la transacción manualmente
+        const queryRunner = AppDataSource.createQueryRunner();
+        await queryRunner.connect();
+        await queryRunner.startTransaction();
+
+        try {
+            // 1. Crear la instancia de Apelación
+            // .create() de TypeORM solo crea la instancia en memoria, no guarda en DB aún
+            const nuevaApelacion = queryRunner.manager.create(Apelacion, {
+                ...data,
+                activo: data.activo ?? true
+            });
+            
+            // Guardamos para obtener el ID real de SQL Server
+            const apelacionGuardada = await queryRunner.manager.save(nuevaApelacion);
+
+            // 2. Procesar Relaciones
+            if (data.relaciones && Array.isArray(data.relaciones)) {
+                for (const rel of data.relaciones) {
+                    
+                    // Crear Partes (Ofendido)
+                    let ofendido = null;
+                    if (rel.ofendido) {
+                        ofendido = await queryRunner.manager.save(
+                            queryRunner.manager.create(ApelacionParte, {
+                                ...rel.ofendido,
+                                idApelacion: apelacionGuardada.id,
+                                activo: data.activo ?? true,
+                                menorEdad: rel.ofendido.menorEdad ?? false
+                            })
+                        );
+                    }
+
+                    // Crear Partes (Procesado)
+                    let procesado = null;
+                    if (rel.procesado) {
+                        procesado = await queryRunner.manager.save(
+                            queryRunner.manager.create(ApelacionParte, {
+                                ...rel.procesado,
+                                idApelacion: apelacionGuardada.id,
+                                activo: data.activo ?? true,
+                                menorEdad: rel.procesado.menorEdad ?? false
+                            })
+                        );
+                    }
+
+                    // 3. Crear la Relación vinculando los IDs recién generados
+                    const nuevaRelacion = await queryRunner.manager.save(
+                        queryRunner.manager.create(Relacion, {
+                            idApelacion: apelacionGuardada.id,
+                            idApelacionParteOfendido: ofendido?.id,
+                            idApelacionParteProcesado: procesado?.id,
+                            activo: data.activo ?? true
+                        })
+                    );
+
+                    // 4. Crear los Delitos asociados a esta relación
+                    if (rel.delitoRelaciones && Array.isArray(rel.delitoRelaciones)) {
+                        const delitosParaGuardar = rel.delitoRelaciones.map((dr: any) => 
+                            queryRunner.manager.create(DelitoRelacion, {
+                                ...dr,
+                                idRelacion: nuevaRelacion.id,
+                                activo: data.activo ?? true
+                            })
+                        );
+                        await queryRunner.manager.save(delitosParaGuardar);
+                    }
+                }
+            }
+
+            // Confirmamos los cambios en la BD
+            await queryRunner.commitTransaction();
+            
+            // Opcional: Retornar la apelación con su ID generado
+            return apelacionGuardada;
+
+        } catch (error) {
+            // Si algo falla, revertimos todo (Atomacidad)
+            await queryRunner.rollbackTransaction();
+            console.error("Error en Transacción TypeORM:", error);
+            throw error;
+        } finally {
+            // Liberamos el queryRunner
+            await queryRunner.release();
+        }
+    }
+
+
 
 static async listAnexos() {
         const catalogs = {
             anexo: CatAnexo,
-            // materia: CatMateria,
         };
 
         const results = await Promise.all(
             Object.entries(catalogs).map(async ([key, entityClass]) => {
-                // Paso 1: Obtener el repositorio de la entidad
+                // Obtener el repositorio de la entidad
                 const repository = AppDataSource.getRepository(entityClass);
 
-                // Paso 2: Realizar la búsqueda
+                // Realizar la búsqueda
                 return await repository.find({
                     select: {
                         id: true,
@@ -311,35 +341,35 @@ static async listAnexos() {
         }, {} as Record<string, any>);
     }
 
-static async agregarAnexo(data: any) {
-    // Iniciamos transacción por seguridad
-    const t = await sequelize.transaction();
+// static async agregarAnexo(data: any) {
+//     // Iniciamos transacción por seguridad
+//     const t = await sequelize.transaction();
 
-    try {
-        const { idApelacion, anexos, activo } = data;
+//     try {
+//         const { idApelacion, anexos, activo } = data;
 
-        if (!idApelacion) throw new Error("El ID de la apelación es obligatorio");
-        if (!anexos || !Array.isArray(anexos)) throw new Error("Debe enviar un array de anexos");
+//         if (!idApelacion) throw new Error("El ID de la apelación es obligatorio");
+//         if (!anexos || !Array.isArray(anexos)) throw new Error("Debe enviar un array de anexos");
 
-        // Mapeamos los anexos para inyectar el IdTramite (idApelacion) y el estado Activo
-        const anexosData = anexos.map((anexo: any) => ({
-            ...anexo,
-            idApelacion: idApelacion, // Se mapea a IdTramite en la BD
-            activo: activo ?? true
-        }));
+//         // Mapeamos los anexos para inyectar el IdTramite (idApelacion) y el estado Activo
+//         const anexosData = anexos.map((anexo: any) => ({
+//             ...anexo,
+//             idApelacion: idApelacion, // Se mapea a IdTramite en la BD
+//             activo: activo ?? true
+//         }));
 
-        // Inserción múltiple
-        const nuevosAnexos = await ApelacionAnexo.bulkCreate(anexosData, { 
-            transaction: t,
-            validate: true 
-        });
+//         // Inserción múltiple
+//         const nuevosAnexos = await ApelacionAnexo.bulkCreate(anexosData, { 
+//             transaction: t,
+//             validate: true 
+//         });
 
-        await t.commit();
-        return nuevosAnexos;
+//         await t.commit();
+//         return nuevosAnexos;
 
-    } catch (error) {
-        if (t) await t.rollback();
-        throw error;
-    }
-}
+//     } catch (error) {
+//         if (t) await t.rollback();
+//         throw error;
+//     }
+// }
 }
