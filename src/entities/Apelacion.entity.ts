@@ -11,6 +11,7 @@ import { CatLocalidad } from "./CatLocalidad.entity";
 import { CatEtnia } from "./CatEtnia.entity";
 import { ApelacionParte } from "./ApelacionParte.entity";
 import { Relacion } from "./Relacion.entity";
+import { ApelacionAnexo } from "./ApelacionAnexo.entity";
 
 @Entity({ name: 'OFA_Apelaciones' })
 export class Apelacion {
@@ -90,7 +91,7 @@ export class Apelacion {
     nomenclatura!: CatNomenclatura;
 
     @ManyToOne(() => CatApelacion)
-    @JoinColumn({ name: 'IdCAtApelacion' })
+    @JoinColumn({ name: 'IdCatApelacion' })
     catApelacion!: CatApelacion;
 
     @ManyToOne(() => TipoApelacion)
@@ -106,11 +107,11 @@ export class Apelacion {
     catJuzgado!: CatJuzgado;
 
     @ManyToOne(() => CatMunicipio)
-    @JoinColumn({ name: 'IdCAtMunicipio' })
+    @JoinColumn({ name: 'IdCatMunicipio' })
     municipio!: CatMunicipio;
 
     @ManyToOne(() => CatLocalidad)
-    @JoinColumn({ name: 'IdCAtLocalidad' })
+    @JoinColumn({ name: 'IdCatLocalidad' })
     localidad!: CatLocalidad;
 
     @ManyToOne(() => CatEtnia)
@@ -125,15 +126,18 @@ export class Apelacion {
     @OneToMany(() => Relacion, (rel) => rel.apelacion)
     relaciones!: Relacion[];
 
+    @OneToMany(() => ApelacionAnexo, (anexo) => anexo.apelacion) 
+    anexos!: ApelacionAnexo[];
+
     // Foreign Keys
     @Column({ name: 'IdSala' }) idSala!: number;
     @Column({ name: 'IdCatMateria' }) idMateria!: number;
     @Column({ name: 'IdCatNomenclatura' }) idNomenclatura!: number;
-    @Column({ name: 'IdCAtApelacion' }) idApelacion!: number;
+    @Column({ name: 'IdCatApelacion' }) idApelacion!: number;
     @Column({ name: 'IdCatTipoApelacion' }) idTipoApelacion!: number;
     @Column({ name: 'IdCatTipoEscrito' }) idTipoEscrito!: number;
     @Column({ name: 'IdCatJuzgadoOrigen' }) idJuzgado!: number;
-    @Column({ name: 'IdCAtMunicipio' }) idMunicipio!: number;
-    @Column({ name: 'IdCAtLocalidad' }) idLocalidad!: number;
+    @Column({ name: 'IdCatMunicipio' }) idMunicipio!: number;
+    @Column({ name: 'IdCatLocalidad' }) idLocalidad!: number;
     @Column({ name: 'IdEtnia' }) idEtnia!: number;
 }

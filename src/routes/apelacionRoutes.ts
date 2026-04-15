@@ -6,9 +6,9 @@ const router = Router();
 router.get('/capturar-apelacion', ApelacionController.getFormData);
 router.get('/buscar-apelacion', ApelacionController.getByFolio);
 router.post('/crear-apelacion', ApelacionController.create);
-// router.get('/capturar-anexo', ApelacionController.listAnexos);
+router.get('/capturar-anexo', ApelacionController.listAnexos);
 router.get('/buscar', ApelacionController.search);
-// router.post('/agregar-anexo', ApelacionController.agregarAnexo);
+router.post('/agregar-anexo', ApelacionController.agregarAnexo);
 
 
 export default router;

@@ -16,6 +16,7 @@ import { TipoParte } from '../entities/TipoParte.entity';
 import { DelitoRelacion } from '../entities/DelitoRelacion.entity';
 import { CatAnexo } from '../entities/CatAnexo.entity';
 import { Like } from 'typeorm';
+import { ApelacionAnexo } from '../entities/ApelacionAnexo.entity';
 
 export class ApelacionService {
 
@@ -341,35 +342,43 @@ static async listAnexos() {
         }, {} as Record<string, any>);
     }
 
-// static async agregarAnexo(data: any) {
-//     // Iniciamos transacción por seguridad
-//     const t = await sequelize.transaction();
+    static async agregarAnexo(data: any) {
+        const queryRunner = AppDataSource.createQueryRunner();
+        await queryRunner.connect();
+        await queryRunner.startTransaction();
 
-//     try {
-//         const { idApelacion, anexos, activo } = data;
+        try {
+            const { idApelacion, anexos, activo } = data;
 
-//         if (!idApelacion) throw new Error("El ID de la apelación es obligatorio");
-//         if (!anexos || !Array.isArray(anexos)) throw new Error("Debe enviar un array de anexos");
+            // Validaciones iniciales
+            if (!idApelacion) throw new Error("El ID de la apelación es obligatorio");
+            if (!anexos || !Array.isArray(anexos)) throw new Error("Debe enviar un array de anexos");
 
-//         // Mapeamos los anexos para inyectar el IdTramite (idApelacion) y el estado Activo
-//         const anexosData = anexos.map((anexo: any) => ({
-//             ...anexo,
-//             idApelacion: idApelacion, // Se mapea a IdTramite en la BD
-//             activo: activo ?? true
-//         }));
+            // Mapeamos los datos a instancias de la Entidad
+            const anexosEntities = anexos.map((anexo: any) => {
+                return queryRunner.manager.create(ApelacionAnexo, {
+                    ...anexo,
+                    idApelacion: idApelacion, // Mapeado a IdTramite en tu Entity
+                    activo: activo ?? true
+                });
+            });
 
-//         // Inserción múltiple
-//         const nuevosAnexos = await ApelacionAnexo.bulkCreate(anexosData, { 
-//             transaction: t,
-//             validate: true 
-//         });
+            // Inserción múltiple (Bulk Save)
+            // TypeORM gestionará la eficiencia de la inserción en SQL Server
+            const nuevosAnexos = await queryRunner.manager.save(anexosEntities);
 
-//         await t.commit();
-//         return nuevosAnexos;
+            await queryRunner.commitTransaction();
+            return nuevosAnexos;
 
-//     } catch (error) {
-//         if (t) await t.rollback();
-//         throw error;
-//     }
-// }
+        } catch (error) {
+            // Revertimos en caso de error
+            await queryRunner.rollbackTransaction();
+            console.error("Error al agregar anexos:", error);
+            throw error;
+        } finally {
+            // Siempre liberamos el runner
+            await queryRunner.release();
+        }
+    }
+
 }
