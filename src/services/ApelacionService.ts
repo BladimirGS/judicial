@@ -155,6 +155,8 @@ static async search(params: any) {
         .leftJoinAndSelect("apelacion.sala", "sala")
         .leftJoinAndSelect("apelacion.nomenclatura", "nomenclatura")
         .leftJoinAndSelect("apelacion.tipoApelacion", "tipoApelacion")
+        .leftJoinAndSelect("apelacion.anexos", "anexo")
+        .leftJoinAndSelect("anexo.anexo", "catAnexo")
         // Traemos el árbol de relaciones para el filtrado y detalle
         .leftJoinAndSelect("apelacion.relaciones", "rel")
         .leftJoinAndSelect("rel.ofendido", "ofendido")
@@ -233,6 +235,16 @@ if (params.nombreParte) {
         localidad: apelacion.localidad?.descripcion ?? null,
         sala: apelacion.sala?.descripcion ?? null,
         nomenclatura: apelacion.nomenclatura?.descripcion ?? null,
+
+anexos: apelacion.anexos?.map(a => ({
+    id: a.id,
+    descripcion: a.idAnexo > 0
+        ? a.anexo?.descripcion ?? null
+        : a.otroAnexo ?? null,
+    esValor: Boolean(a.esValor),
+    monto: a.monto ?? null,
+    cantidad: a.cantidad ?? null
+})) ?? [],
 
         // Resumen de partes y delitos para la vista de lista
 relaciones: apelacion.relaciones?.flatMap(r => {
