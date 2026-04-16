@@ -14,10 +14,13 @@ import { ApelacionParte } from '../entities/ApelacionParte.entity';
 import { DelitoRelacion } from '../entities/DelitoRelacion.entity';
 import { CatAnexo } from '../entities/CatAnexo.entity';
 import { ApelacionAnexo } from '../entities/ApelacionAnexo.entity';
+import { CatSala } from '../entities/CatSala.entity';
+import { CatNomenclatura } from '../entities/CatNomenclatura.entity';
+import { TipoParte } from '../entities/TipoParte.entity';
 
 export class ApelacionService {
 
-    static async getFormData() {
+    static async getFormDataApelacion() {
         const catalogs: Record<string, any> = {
             materias: CatMateria,
             apelaciones: CatApelacion,
@@ -37,7 +40,6 @@ export class ApelacionService {
                 return await repo.find({
                     select: {
                         id: true,
-                        activo: true,
                         descripcion: true
                     },
                     where: { activo: true } 
@@ -73,12 +75,12 @@ export class ApelacionService {
             // Cargamos las relaciones anidadas (el árbol de la Toca)
             relations: {
                 materia: true,
-                etnia: true,
                 tipoApelacion: true,
                 tipoEscrito: true,
                 catJuzgado: true,
                 municipio: true,
                 localidad: true,
+                etnia: true,
                 relaciones: {
                     ofendido: {
                         sexo: true,
@@ -150,8 +152,9 @@ static async search(params: any) {
     const query = AppDataSource.getRepository(Apelacion)
         .createQueryBuilder("apelacion")
         // Traemos las relaciones principales para mostrar en la tabla/lista
-        .leftJoinAndSelect("apelacion.materia", "materia")
-        .leftJoinAndSelect("apelacion.catJuzgado", "juzgado")
+        .leftJoinAndSelect("apelacion.sala", "sala")
+        .leftJoinAndSelect("apelacion.nomenclatura", "nomenclatura")
+        .leftJoinAndSelect("apelacion.tipoApelacion", "tipoApelacion")
         // Traemos el árbol de relaciones para el filtrado y detalle
         .leftJoinAndSelect("apelacion.relaciones", "rel")
         .leftJoinAndSelect("rel.ofendido", "ofendido")
@@ -164,12 +167,20 @@ static async search(params: any) {
         .leftJoinAndSelect("dr.delito", "delito");
 
     // --- Filtros Dinámicos ---
-    if (params.id) {
-        query.andWhere("apelacion.id = :id", { id: params.id });
-    }
-
     if (params.folioOficialia) {
         query.andWhere("apelacion.folioOficialia LIKE :folio", { folio: `%${params.folioOficialia}%` });
+    }
+
+    if (params.idSala) {
+        query.andWhere("sala.id = :idSala", { idSala: params.idSala });
+    }
+
+    if (params.idNomenclatura) {
+        query.andWhere("nomenclatura.id = :idNom", { idNom: params.idNomenclatura });
+    }
+
+    if (params.idTipoApelacion) {
+        query.andWhere("tipoApelacion.id = :idTipo", { idTipo: params.idTipoApelacion });
     }
 
     if (params.folioApelacion) {
@@ -180,13 +191,20 @@ static async search(params: any) {
         query.andWhere("apelacion.expedienteCausa LIKE :causa", { causa: `%${params.expedienteCausa}%` });
     }
 
-    if (params.nombreParte) {
-        query.andWhere("(ofendido.nombre LIKE :parte OR procesado.nombre LIKE :parte)", { parte: `%${params.nombreParte}%` });
-    }
+if (params.nombreParte) {
+    query.andWhere(qb => {
+        const sub = qb.subQuery()
+            .select("1")
+            .from(Relacion, "rel2")
+            .leftJoin("rel2.ofendido", "o2")
+            .leftJoin("rel2.procesado", "p2")
+            .where("rel2.idApelacion = apelacion.id")
+            .andWhere("(o2.nombre LIKE :parte OR p2.nombre LIKE :parte)")
+            .getQuery();
 
-    if (params.nombreDelito) {
-        query.andWhere("delito.descripcion LIKE :delitoNom", { delitoNom: `%${params.nombreDelito}%` });
-    }
+        return `EXISTS ${sub}`;
+    }).setParameter("parte", `%${params.nombreParte}%`);
+}
 
     // Ejecutamos la consulta
     const resultados = await query.getMany();
@@ -197,28 +215,51 @@ static async search(params: any) {
         folioOficialia: apelacion.folioOficialia,
         folioApelacion: apelacion.folioApelacion,
         expedienteCausa: apelacion.expedienteCausa,
+
+        fojas: apelacion.fojas,
+        esReposicion: apelacion.esReposicion,
         fechaAuto: apelacion.fechaAuto,
+        observaciones: apelacion.observaciones,
         asunto: apelacion.asunto,
-        
-        // Descripciones de catálogos nivel 1
+        lugarHechos: apelacion.lugarHechos,
+
+        // Relaciones directas
         materia: apelacion.materia?.descripcion ?? null,
-        juzgado: apelacion.catJuzgado?.descripcion ?? null,
+        etnia: apelacion.etnia?.descripcion ?? null,
+        tipoApelacion: apelacion.tipoApelacion?.descripcion ?? null,
+        tipoEscrito: apelacion.tipoEscrito?.descripcion ?? null,
+        juzgadoOrigen: apelacion.catJuzgado?.descripcion ?? null,
+        municipio: apelacion.municipio?.descripcion ?? null,
+        localidad: apelacion.localidad?.descripcion ?? null,
+        sala: apelacion.sala?.descripcion ?? null,
+        nomenclatura: apelacion.nomenclatura?.descripcion ?? null,
 
         // Resumen de partes y delitos para la vista de lista
-        relaciones: apelacion.relaciones?.map(r => ({
-            id: r.id,
-            ofendido: {
-                id: r.ofendido?.id,
-                nombre: r.ofendido?.nombre ?? null,
-                sexo: r.ofendido?.sexo?.descripcion ?? null
-            },
-            procesado: {
-                id: r.procesado?.id,
-                nombre: r.procesado?.nombre ?? null,
-                sexo: r.procesado?.sexo?.descripcion ?? null
-            },
-            delitos: r.delitoRelaciones?.map(dr => dr.delito?.descripcion ?? null) ?? []
-        })) ?? []
+relaciones: apelacion.relaciones?.flatMap(r => {
+    const partes: any[] = [];
+
+    if (r.ofendido) {
+        partes.push({
+            tipoParte: r.ofendido.tipoParte?.descripcion ?? "OFENDIDO",
+            nombre: r.ofendido.nombre ?? null,
+            direccion: r.ofendido.direccion ?? null,
+            menorEdad: Boolean(r.ofendido.menorEdad),
+            sexo: r.ofendido.sexo?.descripcion ?? null
+        });
+    }
+
+    if (r.procesado) {
+        partes.push({
+            tipoParte: r.procesado.tipoParte?.descripcion ?? "PROCESADO",
+            nombre: r.procesado.nombre ?? null,
+            direccion: r.procesado.direccion ?? null,
+            menorEdad: Boolean(r.procesado.menorEdad),
+            sexo: r.procesado.sexo?.descripcion ?? null
+        });
+    }
+
+    return partes;
+}) ?? []
     }));
 }
 
@@ -229,8 +270,8 @@ static async search(params: any) {
             'idSala', 'idMateria', 'folioOficialia', 'idNomenclatura', 'folioApelacion',
             'idApelacion', 'idTipoApelacion', 'fechaAuto', 'expedienteCausa', 'idTipoEscrito',
             'folioOficio', 'fojas', 'expedienteAcumulado', 'idJuzgado', 'observaciones',
-            'fechaHoraRecepcion', 'certificacion', 'esReposicion', 'idMunicipio',
-            'idLocalidad', 'lugarHechos', 'asunto', 'idEtnia'
+            'fechaHoraRecepcion', 'fechaHoraIngresoJuz', 'certificacion', 'esReposicion', 
+            'idMunicipio', 'idLocalidad', 'idEtnia', 'lugarHechos', 'asunto'
         ];
 
         // Limpiamos el objeto principal
@@ -273,7 +314,7 @@ static async search(params: any) {
                     const procesado = await crearParte(rel.procesado);
 
                     // Solo creamos la relación si al menos hay una parte involucrada
-                    if (ofendido || procesado) {
+                    if (ofendido && procesado) {
                         const nuevaRelacion = await queryRunner.manager.save(
                             queryRunner.manager.create(Relacion, {
                                 idApelacion: apelacionGuardada.id,
@@ -322,9 +363,9 @@ static async listAnexos() {
                 return await repository.find({
                     select: {
                         id: true,
-                        activo: true,
                         descripcion: true
-                    }
+                    },
+                    where: { activo: true } 
                 });
             })
         );
@@ -373,4 +414,32 @@ static async listAnexos() {
         }
     }
 
+    static async getFormDataBuscador() {
+        const catalogs: Record<string, any> = {
+            sala: CatSala,
+            nomenclatura: CatNomenclatura,
+            tiposApelaciones: TipoApelacion,
+            tiposEscritos: TipoEscrito,
+        };
+
+        const results = await Promise.all(
+            Object.entries(catalogs).map(async ([_, entityClass]) => {
+                const repo = AppDataSource.getRepository(entityClass);
+
+                return await repo.find({
+                    select: {
+                        id: true,
+                        descripcion: true
+                    },
+                    where: { activo: true } 
+                });
+            })
+        );
+
+        // Objeto de respuesta
+        return Object.keys(catalogs).reduce((acc, key, index) => {
+            acc[key] = results[index];
+            return acc;
+        }, {} as Record<string, any>);
+    }
 }

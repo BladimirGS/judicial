@@ -3,9 +3,19 @@ import { ApelacionService } from '../services/ApelacionService';
 
 export const ApelacionController = {
     
-    getFormData: async (_req: Request, res: Response) => {
+    getFormDataApelacion: async (_req: Request, res: Response) => {
         try {
-            const data = await ApelacionService.getFormData();
+            const data = await ApelacionService.getFormDataApelacion();
+            res.json(data);
+        } catch (error) {
+            console.error(error);
+            res.status(500).json({ msg: 'Error interno' });
+        }
+    },
+
+    getFormDataBuscador: async (_req: Request, res: Response) => {
+        try {
+            const data = await ApelacionService.getFormDataBuscador();
             res.json(data);
         } catch (error) {
             console.error(error);

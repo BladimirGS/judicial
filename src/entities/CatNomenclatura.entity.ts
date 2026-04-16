@@ -13,7 +13,7 @@ export class CatNomenclatura {
         nullable: true 
     })
     // Corregido a string para coincidir con el VARCHAR(25) de SQL Server
-    nomenclatura!: string;
+    descripcion!: string;
 
     @Column({ 
         name: 'Activo', 
