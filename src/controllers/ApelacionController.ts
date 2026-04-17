@@ -46,7 +46,7 @@ export const ApelacionController = {
 
 search: async (req: Request, res: Response) => {
     try {
-        // Recibimos el JSON desde el body
+        
         const filtros = req.query;
 
         if (Object.keys(filtros).length === 0) {
